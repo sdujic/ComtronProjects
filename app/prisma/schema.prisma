@@ -1,0 +1,227 @@
+// Prisma shema za rezervacijsko aplikacijo (BookingApp)
+// Razvojno okolje uporablja SQLite (provider "sqlite"), ker PostgreSQL
+// v tem Windows razvojnem okolju ni na voljo. Za produkcijo zamenjaj
+// provider v "postgresql" in DATABASE_URL v .env - shema je namenoma
+// napisana brez SQLite-specificnih trikov (enumi so String polja, da
+// prehod na Postgres ne zahteva sprememb modela).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Ena vrstica (singleton, id vedno "singleton") - globalne nastavitve
+// znamke/dejavnosti aplikacije, glej src/lib/nastavitve.ts.
+model Nastavitve {
+  id            String   @id @default("singleton")
+  imeAplikacije String   @default("Naročanje na termin")
+  dejavnost     String   @default("AVTOSERVIS")
+  slogan        String?
+  // Korak (v minutah) pri ročni izbiri ure termina v adminu ("Nov termin")
+  // - privzeto vsakih 5 minut namesto vsako minuto, nastavljivo na
+  // /admin/nastavitve. Ne vpliva na javni obrazec (tam so termini vedno
+  // vezani na 30-minutne sklope, glej KORAK_MIN v dostopnost.ts).
+  korakMinutTermina Int  @default(5)
+  updatedAt     DateTime @updatedAt
+}
+
+model Lokacija {
+  id          String   @id @default(cuid())
+  naziv       String
+  naslov      String?
+  delovniCas  String?
+  casPas      String   @default("Europe/Ljubljana")
+  valuta      String   @default("EUR")
+  // ISO 3166-1 alpha-2 (npr. "SI", "HR") - določa dela proste dneve, glej
+  // src/lib/prazniki.ts. Privzeto Slovenija, nastavljivo po lokaciji, da je
+  // aplikacijo mogoče uporabljati tudi v drugih državah.
+  drzava        String   @default("SI")
+  // Privzeto: sobota delovni dan, nedelja ni - nastavljivo po lokaciji
+  // (uporabnik/osebje lahko spremeni v admin delu).
+  odprtoSobota  Boolean  @default(true)
+  odprtoNedelja Boolean  @default(false)
+  // Koordinate za prikaz na zemljevidu izbire poslovalnice (javni obrazec,
+  // korak "Poslovalnica", src/components/ZemljevidLokacij.tsx) - ročno
+  // vneseno v adminu (kopirano iz Google Maps/OpenStreetMap), ni
+  // samodejnega geokodiranja iz naslova. Brez njiju se lokacija na
+  // zemljevidu preprosto ne prikaže (ostane le v navadnem seznamu).
+  lat         Float?
+  lng         Float?
+  aktivna     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  zaposleni ZaposleniLokacija[]
+  termini   Termin[]
+  urniki    Urnik[]
+}
+
+model KategorijaStoritve {
+  id         String     @id @default(cuid())
+  naziv      String
+  vrstniRed  Int        @default(0)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  storitve Storitev[]
+}
+
+model Storitev {
+  id               String   @id @default(cuid())
+  naziv            String
+  opis             String?
+  trajanjeMin      Int
+  cena             Float
+  kategorijaId     String?
+  ercSifraArtikla  String?  @map("erp_sifra_artikla")
+  vidnaNaSpletu    Boolean  @default(true)
+  // Sidro za "poljubno storitev" na javnem obrazcu (glej src/lib/poljubna-storitev.ts) - kvečjemu en tak zapis.
+  jePoljubna       Boolean  @default(false)
+  aktivna          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  kategorija       KategorijaStoritve? @relation(fields: [kategorijaId], references: [id])
+  izvajalci        ZaposleniStoritev[]
+  terminStoritve   TerminStoritev[]
+}
+
+model Zaposleni {
+  id        String   @id @default(cuid())
+  ime       String
+  priimek   String
+  email     String?
+  telefon   String?
+  jezik     String   @default("sl")
+  vloga     String   @default("IZVAJALEC")
+  aktiven   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lokacije  ZaposleniLokacija[]
+  storitve  ZaposleniStoritev[]
+  urniki    Urnik[]
+  termini   Termin[]
+}
+
+model ZaposleniLokacija {
+  zaposleniId String
+  lokacijaId  String
+
+  zaposleni Zaposleni @relation(fields: [zaposleniId], references: [id], onDelete: Cascade)
+  lokacija  Lokacija  @relation(fields: [lokacijaId], references: [id], onDelete: Cascade)
+
+  @@id([zaposleniId, lokacijaId])
+}
+
+model ZaposleniStoritev {
+  zaposleniId String
+  storitevId  String
+
+  zaposleni Zaposleni @relation(fields: [zaposleniId], references: [id], onDelete: Cascade)
+  storitev  Storitev  @relation(fields: [storitevId], references: [id], onDelete: Cascade)
+
+  @@id([zaposleniId, storitevId])
+}
+
+// dan: 1 = ponedeljek ... 7 = nedelja (ISO)
+model Urnik {
+  id                 String   @id @default(cuid())
+  zaposleniId        String
+  lokacijaId         String
+  dan                Int
+  delovniCasOd       String
+  delovniCasDo       String
+  casRezervacijOd    String
+  casRezervacijDo    String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  zaposleni Zaposleni @relation(fields: [zaposleniId], references: [id], onDelete: Cascade)
+  lokacija  Lokacija  @relation(fields: [lokacijaId], references: [id], onDelete: Cascade)
+
+  @@index([zaposleniId])
+  @@index([lokacijaId])
+}
+
+model Stranka {
+  id                  String   @id @default(cuid())
+  ime                 String
+  priimek             String
+  email               String?
+  telefon             String
+  jezik               String   @default("sl")
+  ercPartnerId        String?  @map("erp_partner_id")
+  soglasjeObvestila   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  termini  Termin[]
+  zapiski  Zapisek[]
+}
+
+// status: V_POTRJEVANJU (privzeto za vir=SPLET, čaka na potrditev/zavrnitev
+//   osebja v TRONxERP) | REZERVIRAN (potrjen) | NEPRIHOD | ODPOVEDAN
+//   (tudi zavrnjen s strani osebja - sprosti termin za novo naročanje,
+//   glej dostopnost.ts) | ZAKLJUCEN
+// vir: SPLET | ADMIN (admin termini so REZERVIRAN takoj, brez potrjevanja)
+model Termin {
+  id           String   @id @default(cuid())
+  datumOd      DateTime
+  datumDo      DateTime
+  status       String   @default("REZERVIRAN")
+  vir          String   @default("ADMIN")
+  lokacijaId   String
+  strankaId    String
+  zaposleniId  String?
+  cenaSkupaj   Float    @default(0)
+  zapisek      String?
+  // Registrska številka vozila za ta obisk (neobvezno, relevantno predvsem
+  // za dejavnost AVTOSERVIS/vulkanizer) - na Terminu, ne na Stranki, ker
+  // ima lahko ena stranka več vozil. Uporabljeno za iskanje po servisni
+  // zgodovini na /admin/zgodovina.
+  registracija String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lokacija  Lokacija   @relation(fields: [lokacijaId], references: [id])
+  stranka   Stranka    @relation(fields: [strankaId], references: [id])
+  zaposleni Zaposleni? @relation(fields: [zaposleniId], references: [id])
+
+  storitve TerminStoritev[]
+
+  @@index([zaposleniId, datumOd])
+  @@index([lokacijaId, datumOd])
+  @@index([strankaId])
+}
+
+model TerminStoritev {
+  id           String  @id @default(cuid())
+  terminId     String
+  storitevId   String
+  cena         Float
+  popust       Float   @default(0)
+  trajanjeMin  Int
+
+  termin   Termin   @relation(fields: [terminId], references: [id], onDelete: Cascade)
+  storitev Storitev @relation(fields: [storitevId], references: [id])
+
+  @@index([terminId])
+  @@index([storitevId])
+}
+
+model Zapisek {
+  id        String   @id @default(cuid())
+  strankaId String
+  besedilo  String
+  oznaka    String?
+  datum     DateTime @default(now())
+
+  stranka Stranka @relation(fields: [strankaId], references: [id], onDelete: Cascade)
+
+  @@index([strankaId])
+}

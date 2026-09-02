@@ -1,0 +1,106 @@
+@import "leaflet/dist/leaflet.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Barvna paleta usklajena s TRONxERP (glej Landing-TRONxERP/style.css in
+   dejanski izgled aplikacije po prijavi). Uporabljena kot navadne CSS
+   spremenljivke, ne Tailwind @apply - next dev nezanesljivo razrešuje
+   lastne (ne-privzete) Tailwind barve znotraj @apply (deluje v
+   produkcijskem buildu, v dev načinu ne vedno), zato se jim tu izogibamo. */
+:root {
+  --c-primary: #0066b3;
+  --c-primary-light: #1863dc;
+  --c-primary-dark: #004c87;
+  --c-primary-bg: #e8f2fa;
+  --c-primary-border: #cfe4f5;
+  --c-ink: #14213d;
+  --c-accent: #e7372f;
+}
+
+body {
+  @apply bg-slate-50 font-sans;
+  color: var(--c-ink);
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50;
+  background: var(--c-primary);
+  color: #fff;
+}
+.btn:hover {
+  background: var(--c-primary-dark);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-medium;
+  border-color: var(--c-primary-border);
+  color: var(--c-primary);
+}
+.btn-secondary:hover {
+  background: var(--c-primary-bg);
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none;
+  color: var(--c-ink);
+}
+.input:focus {
+  border-color: var(--c-primary-light);
+  box-shadow: 0 0 0 1px var(--c-primary-light);
+}
+
+.label {
+  @apply mb-1 block text-sm font-medium text-slate-600;
+}
+
+/* Statusne značke terminov - usklajene s pomenom stanja (glej StatusSelect.tsx) */
+.znacka {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+}
+.znacka-v-potrjevanju {
+  @apply bg-amber-50 text-amber-700;
+}
+.znacka-rezerviran {
+  background: var(--c-primary-bg);
+  color: var(--c-primary);
+}
+.znacka-neprihod {
+  @apply bg-slate-100 text-slate-600;
+}
+.znacka-odpovedan {
+  @apply bg-red-50 text-red-600;
+}
+.znacka-zakljucen {
+  @apply bg-emerald-50 text-emerald-700;
+}
+
+/* TRONxERP/Comtron wordmark - enaka obravnava kot na Landing-TRONxERP strani
+   (.brand/.brand-x), ponovno uporabljena tu za skladno znamčenje. */
+.tronxerp-logotip {
+  @apply inline-flex items-center gap-2 font-extrabold no-underline;
+  color: var(--c-ink);
+}
+.tronxerp-logotip .x {
+  color: var(--c-accent);
+}
+.tronxerp-logotip small {
+  @apply block text-[0.62rem] font-medium uppercase tracking-wide text-slate-400;
+}
+
+/* Značka s številom nepotrjenih rezervacij na zvoncu v adminu - kratko
+   "tresenje" levo-desno vsakih nekaj sekund, po zgledu TRONxERP. */
+@keyframes zvonec-tresenje {
+  0%, 45%, 100% { transform: translateX(0); }
+  5% { transform: translateX(-2px); }
+  15% { transform: translateX(2px); }
+  25% { transform: translateX(-2px); }
+  35% { transform: translateX(2px); }
+}
+.zvonec-znacka {
+  animation: zvonec-tresenje 4s ease-in-out infinite;
+}
