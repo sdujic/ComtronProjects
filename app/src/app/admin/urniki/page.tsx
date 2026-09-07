@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { ustvariUrnik, izbrisiUrnik } from "@/lib/actions";
 
+// Stran združuje zaposlene IN lokacije (za spustna seznama v obrazcu), a
+// akcije, ki ju ustvarjajo (ustvariZaposlenega, ustvariLokacijo ...) osvežijo
+// samo SVOJO stran (revalidatePath("/admin/zaposleni")/("/admin/lokacije")) -
+// brez tega bi stran ostala statično predpomnjena z zastarelim seznamom
+// (npr. na novo dodan zaposleni se ne bi pojavil v spustnem seznamu).
+export const dynamic = "force-dynamic";
+
 const DNEVI = [
   { vrednost: 1, naziv: "Ponedeljek" },
   { vrednost: 2, naziv: "Torek" },
