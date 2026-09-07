@@ -25,6 +25,7 @@ export function NovTerminObrazec({
   const [storitevId, setStoritevId] = useState(storitve[0]?.id ?? "");
   const [datumOd, setDatumOd] = useState(`${datum}T09:00`);
   const [prostiIzvajalci, setProstiIzvajalci] = useState<Zaposleni[]>([]);
+  const [prostoMesto, setProstoMesto] = useState(true);
   const [nalaga, setNalaga] = useState(false);
 
   // Ponudi samo izvajalce, ki so dejansko prosti za izbrano storitev/datum/uro
@@ -34,6 +35,7 @@ export function NovTerminObrazec({
     const storitev = storitve.find((s) => s.id === storitevId);
     if (!storitevId || !lokacijaId || !datumOd || !storitev) {
       setProstiIzvajalci([]);
+      setProstoMesto(true);
       return;
     }
     const od = new Date(datumOd);
@@ -49,7 +51,10 @@ export function NovTerminObrazec({
     });
     fetch(`/api/prosti-izvajalci?${params}`)
       .then((r) => r.json())
-      .then(setProstiIzvajalci)
+      .then((data: { izvajalci: Zaposleni[]; prostoMesto: boolean }) => {
+        setProstiIzvajalci(data.izvajalci);
+        setProstoMesto(data.prostoMesto);
+      })
       .finally(() => setNalaga(false));
   }, [storitevId, lokacijaId, datumOd, storitve]);
 
@@ -101,6 +106,9 @@ export function NovTerminObrazec({
         {!nalaga && prostiIzvajalci.length === 0 && (
           <p className="mt-1 text-xs text-amber-600">Za izbran termin trenutno ni prostega izvajalca za to storitev.</p>
         )}
+        {!nalaga && !prostoMesto && (
+          <p className="mt-1 text-xs text-amber-600">Za izbran termin ni prostega delovnega mesta na tej lokaciji.</p>
+        )}
       </div>
       <div>
         <label className="label">Stranka *</label>
@@ -116,7 +124,7 @@ export function NovTerminObrazec({
         <label className="label">Registrska številka vozila</label>
         <input name="registracija" className="input" placeholder="npr. LJ 12-345 (neobvezno)" />
       </div>
-      <button type="submit" className="btn" disabled={nalaga || prostiIzvajalci.length === 0}>
+      <button type="submit" className="btn" disabled={nalaga || prostiIzvajalci.length === 0 || !prostoMesto}>
         Dodaj termin
       </button>
     </form>

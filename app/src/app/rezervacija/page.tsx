@@ -4,9 +4,19 @@ import { useEffect, useState } from "react";
 import { IzbiraTermina } from "@/components/IzbiraTermina";
 import { TronXerpLogotip } from "@/components/TronXerpLogotip";
 import { ZemljevidLokacij } from "@/components/ZemljevidLokacij";
+import { IzbiraDrzave } from "@/components/IzbiraDrzave";
 import { POLJUBNA_STORITEV_SENTINEL } from "@/lib/poljubna-konstante";
+import { najdiDrzavo, PRIVZETA_DOLZINA_STEVILKE } from "@/lib/drzave";
+import { jeVeljavenEmail, jeVeljavnaStevilka } from "@/lib/validacija";
 
-type Lokacija = { id: string; naziv: string; naslov?: string | null; lat?: number | null; lng?: number | null };
+type Lokacija = {
+  id: string;
+  naziv: string;
+  naslov?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  drzava?: string;
+};
 type Storitev = { id: string; naziv: string; opis?: string; trajanjeMin: number; cena: number };
 type Zaposleni = { id: string; ime: string; priimek: string };
 type IzbranTermin = { datumOd: string; datumDo: string; zaposleniId: string };
@@ -39,7 +49,9 @@ export default function RezervacijaStran() {
   const [prostiIzvajalci, setProstiIzvajalci] = useState<Zaposleni[]>([]);
   const [nalagaIzvajalce, setNalagaIzvajalce] = useState(false);
 
-  const [strankaPodatki, setStrankaPodatki] = useState({ ime: "", priimek: "", telefon: "", email: "" });
+  const [strankaPodatki, setStrankaPodatki] = useState({ ime: "", priimek: "", email: "" });
+  const [telefonStevilka, setTelefonStevilka] = useState("");
+  const [drzavaTelefon, setDrzavaTelefon] = useState(() => najdiDrzavo("SI"));
   const [opisZelje, setOpisZelje] = useState("");
   const [oddano, setOddano] = useState(false);
   const [napaka, setNapaka] = useState<string | null>(null);
@@ -72,7 +84,14 @@ export default function RezervacijaStran() {
     fetch(`/api/storitve?lokacijaId=${lokacija.id}`)
       .then((r) => r.json())
       .then(setStoritve);
+    // Privzeta država za telefonsko številko sledi državi lokacije (SI ali
+    // HR - edini, v katerih podjetje trenutno posluje), ne trdo kodirano.
+    setDrzavaTelefon(najdiDrzavo(lokacija.drzava || "SI"));
   }, [lokacija]);
+
+  const dolzinaTelefona = drzavaTelefon.dolzinaStevilke ?? PRIVZETA_DOLZINA_STEVILKE;
+  const jeTelefonVeljaven = jeVeljavnaStevilka(telefonStevilka, dolzinaTelefona);
+  const jeEmailVeljaven = !strankaPodatki.email.trim() || jeVeljavenEmail(strankaPodatki.email);
 
   async function pridobiProsteIzvajalce(termin: IzbranTermin) {
     if (!izbranaStoritev || !lokacija) return [];
@@ -83,7 +102,8 @@ export default function RezervacijaStran() {
       datumDo: termin.datumDo,
     });
     const res = await fetch(`/api/prosti-izvajalci?${params}`);
-    return (await res.json()) as Zaposleni[];
+    const data = (await res.json()) as { izvajalci: Zaposleni[]; prostoMesto: boolean };
+    return data.izvajalci;
   }
 
   // Po izbiri termina: če je storitev poljubna ali je za ta termin prost
@@ -119,7 +139,7 @@ export default function RezervacijaStran() {
           lokacijaId: lokacija.id,
           datumOd: izbranTermin.datumOd,
           datumDo: izbranTermin.datumDo,
-          stranka: strankaPodatki,
+          stranka: { ...strankaPodatki, telefon: `${drzavaTelefon.klicnaStevilka}${telefonStevilka}` },
           ...(jePoljubna ? { opisZelje } : {}),
           ...(registracija.trim() ? { registracija: registracija.trim() } : {}),
         }),
@@ -346,19 +366,33 @@ export default function RezervacijaStran() {
           </div>
           <div>
             <label className="label">Telefon *</label>
-            <input
-              className="input"
-              value={strankaPodatki.telefon}
-              onChange={(e) => setStrankaPodatki({ ...strankaPodatki, telefon: e.target.value })}
-            />
+            <div className="flex items-stretch rounded-lg border border-slate-300 focus-within:border-primary-500">
+              <IzbiraDrzave izbrana={drzavaTelefon} onIzberi={setDrzavaTelefon} />
+              <input
+                className="w-full rounded-r-lg px-3 py-2 text-sm focus:outline-none"
+                value={telefonStevilka}
+                onChange={(e) => setTelefonStevilka(e.target.value.replace(/[^\d]/g, ""))}
+                placeholder="41 234 567"
+                inputMode="numeric"
+              />
+            </div>
+            {telefonStevilka && !jeTelefonVeljaven && (
+              <p className="mt-1 text-xs text-red-600">
+                Številka mora vsebovati samo števke ({dolzinaTelefona[0]}
+                {dolzinaTelefona[0] !== dolzinaTelefona[1] ? `-${dolzinaTelefona[1]}` : ""} znakov za{" "}
+                {drzavaTelefon.naziv}).
+              </p>
+            )}
           </div>
           <div>
             <label className="label">E-pošta</label>
             <input
+              type="email"
               className="input"
               value={strankaPodatki.email}
               onChange={(e) => setStrankaPodatki({ ...strankaPodatki, email: e.target.value })}
             />
+            {!jeEmailVeljaven && <p className="mt-1 text-xs text-red-600">Vnesite veljaven e-poštni naslov.</p>}
           </div>
 
           {napaka && <p className="text-sm text-red-600">{napaka}</p>}
@@ -372,7 +406,8 @@ export default function RezervacijaStran() {
               disabled={
                 !strankaPodatki.ime ||
                 !strankaPodatki.priimek ||
-                !strankaPodatki.telefon ||
+                !jeTelefonVeljaven ||
+                !jeEmailVeljaven ||
                 (jePoljubna && !opisZelje.trim()) ||
                 nalaganje
               }

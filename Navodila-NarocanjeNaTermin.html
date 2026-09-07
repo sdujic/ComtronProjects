@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Naročanje na termin — uporabniška navodila</title>
+<style>
+  :root{
+    --ink:#1b2430; --sub:#5b6b7c; --line:#e2e8ef; --bg:#f6f8fb; --card:#ffffff;
+    --accent:#0066b3; --accent-ink:#004c87; --accent-bg:#e8f2fa;
+    --warn-bg:#fff6e8; --warn-line:#f0c76b; --warn-ink:#7a5200;
+    --ok-bg:#eafbf1; --ok-line:#8fd9b3; --ok-ink:#12633b;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px 80px}
+  header.hero{
+    background:linear-gradient(135deg,#004c87,#0066b3 55%,#1863dc);
+    color:#fff; padding:44px 24px 0;
+  }
+  header.hero .inner{max-width:1180px;margin:0 auto;padding-bottom:28px}
+  header.hero .eyebrow{
+    text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;font-weight:700;
+    opacity:.85;margin:0 0 10px;display:flex;align-items:center;gap:8px;
+  }
+  header.hero h1{margin:0 0 10px;font-size:clamp(26px,3.6vw,38px);line-height:1.15}
+  header.hero p.lead{margin:0;max-width:66ch;opacity:.92;font-size:16.5px}
+  .metaRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .metaChip{
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28);
+    padding:7px 13px;border-radius:999px;font-size:13px;font-weight:600;
+    display:flex;align-items:center;gap:6px;
+  }
+  .metaChip code{background:rgba(0,0,0,.18);padding:1px 6px;border-radius:5px;font-family:var(--mono);font-weight:600}
+  .metaChip a{color:#fff}
+
+  /* Preklop med "Za stranke" in "Za osebje" */
+  .tabBar{max-width:1180px;margin:0 auto;padding:0 24px;position:relative;top:26px}
+  .tabButtons{display:flex;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    border-radius:14px;padding:6px;backdrop-filter:blur(4px)}
+  .tabBtn{
+    flex:1;appearance:none;border:none;background:transparent;color:#fff;opacity:.78;
+    font-size:15px;font-weight:700;padding:12px 18px;border-radius:10px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s;
+  }
+  .tabBtn:hover{opacity:1;background:rgba(255,255,255,.08)}
+  .tabBtn.active{background:#fff;color:var(--accent-ink);opacity:1;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .tabBtn .ic{font-size:19px}
+
+  .wrap{padding-top:56px}
+
+  .layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;margin-top:8px}
+  nav.toc{position:sticky;top:24px;align-self:start;padding:18px 16px;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;}
+  nav.toc .tocTitle{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);font-weight:800;margin:0 0 10px 2px}
+  nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+  nav.toc li{counter-increment:toc;margin:0}
+  nav.toc a{
+    display:flex;gap:9px;align-items:flex-start;color:var(--ink);text-decoration:none;
+    font-size:13.6px;padding:7px 8px;border-radius:8px;font-weight:600;
+  }
+  nav.toc a::before{
+    content:counter(toc);flex:none;width:20px;height:20px;border-radius:6px;background:var(--accent-bg);
+    color:var(--accent-ink);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  }
+  nav.toc a:hover{background:var(--accent-bg)}
+
+  main{min-width:0}
+  section.card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:30px 32px;margin-bottom:22px;scroll-margin-top:20px;
+  }
+  section.card h2{
+    display:flex;align-items:center;gap:12px;margin:0 0 6px;font-size:21px;
+  }
+  section.card h2 .num{
+    flex:none;width:32px;height:32px;border-radius:9px;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:800;
+  }
+  section.card .dek{color:var(--sub);margin:0 0 20px;font-size:14.5px;max-width:78ch}
+
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:step}
+  ol.steps > li{
+    counter-increment:step;position:relative;padding:0 0 16px 34px;margin-bottom:2px;
+    border-left:2px solid var(--line);
+  }
+  ol.steps > li:last-child{border-color:transparent;padding-bottom:2px}
+  ol.steps > li::before{
+    content:counter(step);position:absolute;left:-13px;top:0;width:24px;height:24px;border-radius:50%;
+    background:#fff;border:2px solid var(--accent);color:var(--accent-ink);font-weight:800;font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  ol.steps b{font-weight:700}
+  ol.steps .path{font-family:var(--mono);background:var(--accent-bg);color:var(--accent-ink);
+    padding:1px 7px;border-radius:6px;font-size:.92em;font-weight:700}
+
+  figure.shot{margin:16px 0 6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f0f2f6}
+  figure.shot img{display:block;width:100%;height:auto;cursor:zoom-in}
+  figure.shot figcaption{
+    padding:9px 14px;font-size:13px;color:var(--sub);border-top:1px solid var(--line);background:#fbfcfe;
+  }
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+
+  .callout{border-radius:12px;padding:16px 18px;margin:18px 0;font-size:14.5px;border:1px solid}
+  .callout .ctitle{font-weight:800;display:flex;gap:8px;align-items:center;margin-bottom:4px;font-size:13.5px;text-transform:uppercase;letter-spacing:.04em}
+  .callout.tip{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-ink)}
+  .callout.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+
+  table.fields{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  table.fields th,table.fields td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  table.fields th{background:#f1f4f9;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--sub)}
+  table.fields td.req::after{content:" *";color:#c0392b;font-weight:800}
+
+  .statusFlow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:16px 0}
+  .statusFlow .pill{padding:7px 14px;border-radius:999px;background:#eef1f6;color:var(--sub);font-weight:700;font-size:13px;border:1px solid var(--line)}
+  .statusFlow .pill.done{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-ink)}
+  .statusFlow .pill.bad{background:#fdeceb;border-color:#f2b8b3;color:#8a2c24}
+  .statusFlow .arrow{color:#b7c0cc;font-size:16px}
+
+  code.inline{font-family:var(--mono);background:#eef1f6;padding:1px 6px;border-radius:5px;font-size:.92em}
+
+  .badgeRow{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+  .badgeRow .badge{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--sub);
+    background:#f1f4f9;border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+  .badgeRow .dot{width:9px;height:9px;border-radius:50%;flex:none}
+
+  footer{max-width:1180px;margin:8px auto 0;padding:0 24px;color:var(--sub);font-size:13px;text-align:center}
+
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr}
+    nav.toc{position:static}
+  }
+
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* Lightbox za povečan prikaz zaslonskih posnetkov */
+  .lightbox{position:fixed;inset:0;background:rgba(10,14,20,.82);display:none;align-items:center;justify-content:center;
+    padding:30px;z-index:999;cursor:zoom-out}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <p class="eyebrow">🅧 Naročanje na termin · Uporabniška navodila</p>
+    <h1>Kako uporabljati aplikacijo za naročanje na termin</h1>
+    <p class="lead">Ta navodila pokrivajo oba dela aplikacije: javni obrazec, prek katerega se stranke same naročijo na termin, in administracijo, prek katere osebje upravlja rezervacije, storitve, zaposlene in nastavitve.</p>
+    <div class="metaRow">
+      <span class="metaChip">🌐 Javni del: <code>/rezervacija</code></span>
+      <span class="metaChip">🔐 Administracija: <code>/admin</code></span>
+      <span class="metaChip">📅 Pripravljeno: 07.09.2026</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabBar">
+  <div class="tabButtons">
+    <button class="tabBtn active" data-tab="stranke" onclick="preklopi('stranke')">
+      <span class="ic">🧑‍🤝‍🧑</span> Za stranke — rezervacija termina
+    </button>
+    <button class="tabBtn" data-tab="osebje" onclick="preklopi('osebje')">
+      <span class="ic">🛠️</span> Za osebje — administracija
+    </button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= DEL 1: STRANKE / REZERVACIJA ================= -->
+  <div class="panel active" id="panel-stranke">
+    <div class="layout">
+      <nav class="toc">
+        <p class="tocTitle">Vsebina</p>
+        <ol>
+          <li><a href="#s-kaj-je">Kaj je ta aplikacija</a></li>
+          <li><a href="#s-poslovalnica">Izbira poslovalnice</a></li>
+          <li><a href="#s-storitev">Izbira storitve</a></li>
+          <li><a href="#s-termin">Izbira termina</a></li>
+          <li><a href="#s-izvajalec">Izbira izvajalca</a></li>
+          <li><a href="#s-podatki">Vnos podatkov</a></li>
+          <li><a href="#s-telefon">Telefonska številka</a></li>
+          <li><a href="#s-oddaja">Oddaja in kaj sledi</a></li>
+        </ol>
+      </nav>
+
+      <main>
+        <section class="card" id="s-kaj-je">
+          <h2><span class="num">1</span> Kaj je ta aplikacija</h2>
+          <p class="dek">Spletni obrazec, prek katerega se stranka sama naroči na termin servisa — brez klicanja.</p>
+          <p>Stranka v nekaj korakih izbere storitev, si ogleda proste termine in odda zahtevek. Rezervacija po oddaji čaka na potrditev osebja (glej razdelek 8) — šele takrat je termin dokončno rezerviran.</p>
+          <div class="callout tip">
+            <div class="ctitle">✓ Kje najdete obrazec</div>
+            Na vstopni strani aplikacije kliknete gumb <b>»Rezerviraj termin«</b>, ki vas pripelje na obrazec <span class="path">/rezervacija</span>.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/01-vstopna-stran.png" alt="Vstopna stran">
+            <figcaption>Vstopna stran — gumb »Rezerviraj termin« vodi na javni obrazec.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-poslovalnica">
+          <h2><span class="num">2</span> Izbira poslovalnice</h2>
+          <p class="dek">Ta korak se prikaže SAMO, če podjetje posluje na več kot eni lokaciji.</p>
+          <ol class="steps">
+            <li>Če je aktivna samo ena poslovalnica, se ta korak samodejno preskoči in obrazec se začne kar pri izbiri storitve.</li>
+            <li>Če je poslovalnic več, izberete eno s klikom na seznam, ali kliknete <b>»Pokaži v zemljevidih«</b>, da vidite vse poslovalnice na zemljevidu in izberete tisto, ki vam je najbližje.</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/02-izbira-poslovalnice.png" alt="Izbira poslovalnice">
+            <figcaption>Korak »Poslovalnica« — seznam aktivnih poslovalnic + gumb za zemljevid.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-storitev">
+          <h2><span class="num">3</span> Izbira storitve</h2>
+          <p class="dek">Seznam storitev, ki jih izbrana poslovalnica ponuja, z okvirnim trajanjem in ceno.</p>
+          <ol class="steps">
+            <li>Kliknite na želeno storitev (npr. <b>Menjava pnevmatik</b>) — ob vsaki je prikazano trajanje in cena.</li>
+            <li>Če iskane storitve ni na seznamu, kliknite kartico <b>»Druga želja / opis težave«</b> — na koncu obrazca boste lahko z besedami opisali, kaj potrebujete.</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/03-izbira-storitve.png" alt="Izbira storitve">
+            <figcaption>Korak »Storitev« — seznam storitev + kartica »Druga želja«.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-termin">
+          <h2><span class="num">4</span> Izbira termina</h2>
+          <p class="dek">Koledar, kjer izberete natančen dan in uro.</p>
+          <ol class="steps">
+            <li>Preklapljate lahko med pogledom <b>Dan</b>, <b>Teden</b> in <b>Mesec</b> (zgoraj levo).</li>
+            <li>Puščici ‹ › in polje z datumom premikata prikazano obdobje.</li>
+            <li>Zasedeni termini so obarvani sivo in jih ni mogoče izbrati — prikazani so, da vidite, kdaj je še prosto, brez razkritja podatkov drugih strank.</li>
+            <li>Če z miško obstanete nad prostim terminom, se prikaže oblaček s številom še prostih mest (npr. »Še 2 prosti mesti«) — to je pomembno, kadar je za isto uro na voljo več izvajalcev ali več fizičnih delovnih mest (npr. dvižnih ramp).</li>
+            <li>Kliknite na prost termin in nato <b>»Naprej«</b>.</li>
+          </ol>
+          <div class="grid2">
+            <figure class="shot">
+              <img src="Navodila-slike/04-izbira-termina.png" alt="Izbira termina - dnevni pogled">
+              <figcaption>Dnevni pogled.</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="Navodila-slike/05-izbira-termina-teden.png" alt="Izbira termina - tedenski pogled">
+              <figcaption>Tedenski pogled.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="card" id="s-izvajalec">
+          <h2><span class="num">5</span> Izbira izvajalca</h2>
+          <p class="dek">Ta korak se prikaže SAMO, če je za izbrani termin dejansko prostih več izvajalcev.</p>
+          <ol class="steps">
+            <li>Če je za ta termin prost samo en izvajalec (ali gre za »Drugo željo«), se ta korak samodejno preskoči — izvajalec je dodeljen samodejno.</li>
+            <li>Če je prostih izvajalcev več, lahko izberete določenega, ali kliknete <b>»Vseeno mi je, kdo izvede storitev«</b>.</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/06-izbira-izvajalca.png" alt="Izbira izvajalca">
+            <figcaption>Korak »Izvajalec« (prikazan le, kadar je na voljo izbira).</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-podatki">
+          <h2><span class="num">6</span> Vnos podatkov</h2>
+          <p class="dek">Zadnji korak pred oddajo — kontaktni podatki, po potrebi tudi registrska številka vozila.</p>
+          <table class="fields">
+            <tr><th>Polje</th><th>Obvezno</th><th>Opomba</th></tr>
+            <tr><td>Registrska številka vozila</td><td>Ne</td><td>Prikaže se samo, če je dejavnost nastavljena na »Avtoservis«.</td></tr>
+            <tr><td class="req">Ime</td><td>Da</td><td>—</td></tr>
+            <tr><td class="req">Priimek</td><td>Da</td><td>—</td></tr>
+            <tr><td class="req">Telefon</td><td>Da</td><td>Glej razdelek 7 — izbira države + številka.</td></tr>
+            <tr><td>E-pošta</td><td>Ne</td><td>Če jo vnesete, mora biti v veljavni obliki (npr. <code class="inline">ime@ponudnik.si</code>) — sistem to preveri.</td></tr>
+          </table>
+          <figure class="shot">
+            <img src="Navodila-slike/07-podatki-stranke.png" alt="Vnos podatkov stranke">
+            <figcaption>Korak »Podatki«.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-telefon">
+          <h2><span class="num">7</span> Telefonska številka in klicna koda države</h2>
+          <p class="dek">Telefonsko številko vnesete v dveh delih: klicna koda države (z zastavico) + sama številka.</p>
+          <ol class="steps">
+            <li>Klikom na polje s klicno kodo (npr. <span class="path">🇸🇮 +386</span>) se odpre iskalni seznam vseh držav.</li>
+            <li>Vpišite del imena države (npr. »hrva«) ali del klicne kode, da seznam zožite, nato kliknite želeno državo.</li>
+            <li>Privzeto je izbrana država, v kateri posluje izbrana poslovalnica (Slovenija ali Hrvaška).</li>
+            <li>V desno polje vnesite samo številko, brez klicne kode in presledkov ni treba dodajati posebej — le števke.</li>
+          </ol>
+          <div class="callout warn">
+            <div class="ctitle">⚠ Pozor</div>
+            Številka mora vsebovati samo števke in ustrezno dolžino za izbrano državo (za Slovenijo natančno 8 števk) — sistem napačno dolžino takoj opozori in onemogoči oddajo, dokler ni popravljena.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/08-izbira-drzave-telefon.png" alt="Izbira klicne kode države">
+            <figcaption>Iskalni spustni seznam držav s klicnimi kodami.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="s-oddaja">
+          <h2><span class="num">8</span> Oddaja in kaj sledi</h2>
+          <p class="dek">Po kliku na »Potrdi rezervacijo« zahtevek še ni dokončno rezerviran termin.</p>
+          <div class="statusFlow">
+            <span class="pill">Zahtevek oddan</span>
+            <span class="arrow">→</span>
+            <span class="pill" style="background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)">V potrjevanju</span>
+            <span class="arrow">→</span>
+            <span class="pill done">Potrjen s strani osebja</span>
+          </div>
+          <p>Osebje v administraciji (glej drugi del teh navodil) zahtevek potrdi ali zavrne. Stranka o končni potrditvi trenutno ni obveščena avtomatsko (e-poštna/SMS obvestila niso del te različice) — po potrebi jo pokličite/kontaktirajte.</p>
+          <figure class="shot">
+            <img src="Navodila-slike/09-rezervacija-oddana.png" alt="Rezervacija oddana">
+            <figcaption>Potrditveno sporočilo po oddaji zahtevka.</figcaption>
+          </figure>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= DEL 2: OSEBJE / ADMINISTRACIJA ================= -->
+  <div class="panel" id="panel-osebje">
+    <div class="layout">
+      <nav class="toc">
+        <p class="tocTitle">Vsebina</p>
+        <ol>
+          <li><a href="#a-prijava">Prijava</a></li>
+          <li><a href="#a-koledar">Koledar in potrjevanje</a></li>
+          <li><a href="#a-nov-termin">Ročno dodajanje termina</a></li>
+          <li><a href="#a-zvonec">Zvonec z obvestili</a></li>
+          <li><a href="#a-storitve">Storitve</a></li>
+          <li><a href="#a-zaposleni">Zaposleni</a></li>
+          <li><a href="#a-urniki">Urniki</a></li>
+          <li><a href="#a-stranke">Stranke in zgodovina servisov</a></li>
+          <li><a href="#a-lokacije">Lokacije, zemljevid, delovna mesta</a></li>
+          <li><a href="#a-nastavitve">Nastavitve in admin uporabniki</a></li>
+        </ol>
+      </nav>
+
+      <main>
+        <section class="card" id="a-prijava">
+          <h2><span class="num">1</span> Prijava v administracijo</h2>
+          <p class="dek">Vsa administracija je zaščitena s prijavo — brez nje se vsak obisk <span class="path">/admin</span> preusmeri na prijavno stran.</p>
+          <ol class="steps">
+            <li>Odprite <span class="path">/prijava</span> (ali kliknite »Admin vstop« na vstopni strani).</li>
+            <li>Vnesite e-pošto in geslo svojega admin računa.</li>
+            <li>Kliknite <b>»Prijava«</b> — po uspešni prijavi se odprete na koledar.</li>
+          </ol>
+          <div class="callout tip">
+            <div class="ctitle">✓ Odjava</div>
+            Gumb z ikono uporabnika zgoraj desno v adminu vas odjavi.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/10-admin-prijava.png" alt="Prijava v administracijo">
+            <figcaption>Prijavna stran.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-koledar">
+          <h2><span class="num">2</span> Koledar in potrjevanje rezervacij</h2>
+          <p class="dek">Osrednja stran administracije — pregled vseh terminov po dnevih, tednih ali mesecih.</p>
+          <ol class="steps">
+            <li>Preklapljate med pogledom <b>Dan</b>, <b>Teden</b> in <b>Mesec</b>.</li>
+            <li>Vsak termin prikazuje uro, storitev, stranko, kako je bil ustvarjen (»prek spleta« ali »ročno«) ter seznam izvajalcev te lokacije — zaseden izvajalec je prikazan <s>prečrtano</s>.</li>
+            <li>S spustnim seznamom ob terminu spremenite status: <b>V potrjevanju → Potrjen</b> ali <b>Zavrnjen/odpovedan</b>.</li>
+            <li>Ko termin potrdite, se v ozadju samodejno ustvari delovni nalog v TRONxERP (če je integracija nastavljena) — glej opombo spodaj.</li>
+          </ol>
+          <div class="callout warn">
+            <div class="ctitle">⚠ Pomembno</div>
+            Odpovedani/zavrnjeni termini se v tedenskem in mesečnem pregledu NE štejejo kot zasedenost (v dnevnem pregledu pa ostanejo vidni, z oznako statusa) — s tem termin samodejno sprostite za novo naročanje.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/11-admin-koledar-dan.png" alt="Admin koledar - dnevni pogled">
+            <figcaption>Dnevni pogled — polni podatki o vsakem terminu.</figcaption>
+          </figure>
+          <div class="grid2">
+            <figure class="shot">
+              <img src="Navodila-slike/12-admin-koledar-teden.png" alt="Admin koledar - tedenski pogled">
+              <figcaption>Tedenski pogled.</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="Navodila-slike/13-admin-koledar-mesec.png" alt="Admin koledar - mesečni pogled">
+              <figcaption>Mesečni pogled — klik na dan odpre dnevni pogled zanj.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="card" id="a-nov-termin">
+          <h2><span class="num">3</span> Ročno dodajanje termina</h2>
+          <p class="dek">Na dnu dnevnega pogleda je obrazec »Nov termin« — za termine, ki jih naročite po telefonu ali osebno.</p>
+          <ol class="steps">
+            <li>Izberite lokacijo, storitev in točen datum/uro.</li>
+            <li>Izvajalca lahko izberete ročno, ali pustite »samodejno« — sistem ponudi SAMO tiste izvajalce, ki so za ta točen termin dejansko prosti.</li>
+            <li>Izberite obstoječo stranko iz seznama in po želji vpišite registrsko številko vozila.</li>
+            <li>Gumb <b>»Dodaj termin«</b> je onemogočen, če za izbrani termin ni prostega izvajalca ALI ni prostega fizičnega delovnega mesta (rampe/stola) — sistem prikaže rumeno opozorilo, kaj manjka.</li>
+          </ol>
+          <div class="callout tip">
+            <div class="ctitle">✓ Termini, ustvarjeni ročno tukaj</div>
+            so takoj v statusu »Potrjen« (brez čakanja na potrditev) in takoj sprožijo delovni nalog v TRONxERP, če je integracija vklopljena.
+          </div>
+        </section>
+
+        <section class="card" id="a-zvonec">
+          <h2><span class="num">4</span> Zvonec z obvestili</h2>
+          <p class="dek">Ikona zvonca zgoraj desno v adminu vas opozori na nepotrjene spletne rezervacije.</p>
+          <ol class="steps">
+            <li>Rdeča značka na zvoncu kaže TOČNO število rezervacij, ki čakajo na potrditev.</li>
+            <li>Klik na zvonec odpre spustni seznam z osnovnimi podatki vsake čakajoče rezervacije (stranka, datum, ura, storitev).</li>
+            <li>Klik na posamezno rezervacijo vas odpelje neposredno na dnevni pogled koledarja za ta termin, kjer ga lahko takoj potrdite ali zavrnete.</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/14-admin-zvonec.png" alt="Zvonec z obvestili">
+            <figcaption>Spustni seznam nepotrjenih rezervacij.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-storitve">
+          <h2><span class="num">5</span> Storitve</h2>
+          <p class="dek">Šifrant storitev, ki jih stranke lahko izberejo na javnem obrazcu.</p>
+          <ol class="steps">
+            <li>Vsaka storitev ima naziv, opis, trajanje (v minutah) in ceno.</li>
+            <li>Stikalo »Vidna na spletu« določa, ali se storitev sploh ponudi strankam na javnem obrazcu.</li>
+            <li>Trajanje in cena ne moreta biti negativna — sistem to samodejno prepreči.</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/15-admin-storitve.png" alt="Storitve">
+            <figcaption>Seznam in obrazec za dodajanje storitve.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-zaposleni">
+          <h2><span class="num">6</span> Zaposleni</h2>
+          <p class="dek">Kartoteka izvajalcev — katere storitve izvajajo in na katerih lokacijah delajo.</p>
+          <ol class="steps">
+            <li>Vsakemu zaposlenemu dodelite eno ali več lokacij ter eno ali več storitev, ki jih izvaja.</li>
+            <li>Ali je zaposleni za določen termin dejansko na voljo, je odvisno tudi od urnika (glej naslednji razdelek).</li>
+          </ol>
+          <figure class="shot">
+            <img src="Navodila-slike/16-admin-zaposleni.png" alt="Zaposleni">
+            <figcaption>Seznam zaposlenih.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-urniki">
+          <h2><span class="num">7</span> Urniki</h2>
+          <p class="dek">Za vsak dan v tednu posebej določite delovni čas in čas, znotraj katerega je mogoče rezervirati termin.</p>
+          <div class="callout warn">
+            <div class="ctitle">⚠ Pogosta past</div>
+            Zaposleni je za rezervacije na voljo SAMO na dneve, za katere ima tu vnesen urnik — manjkajoč dan (npr. sobota) pomeni, da tisti dan ni ponujenih terminov, tudi če je lokacija sicer označena kot »odprta ob sobotah«.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/17-admin-urniki.png" alt="Urniki">
+            <figcaption>Urniki po zaposlenem, lokaciji in dnevu.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-stranke">
+          <h2><span class="num">8</span> Stranke in zgodovina servisov</h2>
+          <p class="dek">Kartoteka strank ter iskalnik po celotni servisni zgodovini.</p>
+          <ol class="steps">
+            <li>Na seznamu strank kliknite posamezno stranko za njeno kartico — zgodovina vseh terminov + prosti zapiski o stranki.</li>
+            <li>Na strani <b>»Zgodovina servisov«</b> lahko iščete po imenu, priimku, telefonski številki stranke ALI po registrski številki vozila — uporabno, kadar isto vozilo pripelje druga oseba.</li>
+          </ol>
+          <div class="grid2">
+            <figure class="shot">
+              <img src="Navodila-slike/19-admin-kartica-stranke.png" alt="Kartica stranke">
+              <figcaption>Kartica stranke — zgodovina in zapiski.</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="Navodila-slike/20-admin-zgodovina.png" alt="Zgodovina servisov">
+              <figcaption>Iskanje po zgodovini servisov.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="card" id="a-lokacije">
+          <h2><span class="num">9</span> Lokacije, zemljevid in delovna mesta</h2>
+          <p class="dek">Vsaka poslovalnica ima svoje nastavitve delovnega časa, koordinat za zemljevid in fizičnih delovnih mest.</p>
+          <ol class="steps">
+            <li><b>Koordinate</b> (zemljepisna širina/dolžina) določajo, kje se poslovalnica prikaže na zemljevidu pri izbiri poslovalnice na javnem obrazcu. Dobite jih z desnim klikom na lokacijo na Google Maps.</li>
+            <li><b>Delovna mesta</b> (npr. dvižne rampe pri avtoservisu, stoli pri frizerju) predstavljajo fizično omejitev, NEODVISNO od števila zaposlenih — eno mesto lahko streže samo en termin naenkrat.</li>
+            <li>Vsako delovno mesto ima svoj naziv (uredljiv) in svoj nabor storitev, ki jih zna izvesti — npr. ena rampa zna samo menjavo gum, druga zna menjavo gum IN redni servis.</li>
+            <li>Če za lokacijo ni definirano NOBENO delovno mesto, zasedenost velja samo po zaposlenih (privzeto obnašanje) — delovna mesta so torej neobvezna nadgradnja, ne obveznost.</li>
+          </ol>
+          <div class="callout tip">
+            <div class="ctitle">✓ Primer</div>
+            Avtoservis ima 2 rampi: »Rampa 1« zna samo menjavo gum, »Rampa 2« zna menjavo gum IN redni servis. Brez rezervacij sta tako na voljo 2 mesti za menjavo gum, a samo 1 za redni servis. Če stranka rezervira redni servis, ta storitev za to uro ni več na voljo nikomur drugemu (edina ustrezna rampa je zasedena), medtem ko menjava gum ostane dosegljiva na drugi rampi.
+          </div>
+          <figure class="shot">
+            <img src="Navodila-slike/21-admin-lokacije.png" alt="Lokacije">
+            <figcaption>Nastavitve lokacije, koordinate in delovna mesta.</figcaption>
+          </figure>
+        </section>
+
+        <section class="card" id="a-nastavitve">
+          <h2><span class="num">10</span> Nastavitve in admin uporabniki</h2>
+          <p class="dek">Splošne nastavitve podjetja/dejavnosti in upravljanje admin dostopov.</p>
+          <table class="fields">
+            <tr><th>Nastavitev</th><th>Kaj določa</th></tr>
+            <tr><td>Ime aplikacije</td><td>Prikazano v glavi vseh strani.</td></tr>
+            <tr><td>Dejavnost</td><td>Avtoservis, Frizerski salon, Inštalacije/klime, Dimnikarstvo, Spa in masaže ali Drugo — vpliva na privzeto besedilo in ponujeno predlogo storitev.</td></tr>
+            <tr><td>Slogan</td><td>Besedilo na vstopni strani (prazno = privzeto glede na dejavnost).</td></tr>
+            <tr><td>Korak minut</td><td>Na koliko minut se lahko izbira ura pri ročnem dodajanju termina v adminu (privzeto 5 min).</td></tr>
+            <tr><td>Admin uporabniki</td><td>Dodajanje/brisanje dodatnih oseb, ki se lahko prijavijo v administracijo (e-pošta + geslo, vsaj 6 znakov).</td></tr>
+          </table>
+          <figure class="shot">
+            <img src="Navodila-slike/22-admin-nastavitve.png" alt="Nastavitve">
+            <figcaption>Nastavitve podjetja, predloga storitev in admin uporabniki.</figcaption>
+          </figure>
+        </section>
+      </main>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Naročanje na termin — interna navodila za uporabo · Povezano s TRONxERP by Comtron
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+  function preklopi(ime) {
+    document.querySelectorAll('.tabBtn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === ime);
+    });
+    document.getElementById('panel-stranke').classList.toggle('active', ime === 'stranke');
+    document.getElementById('panel-osebje').classList.toggle('active', ime === 'osebje');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('figure.shot img').forEach(function (img) {
+    img.addEventListener('click', function () {
+      document.getElementById('lightboxImg').src = img.src;
+      document.getElementById('lightbox').classList.add('open');
+    });
+  });
+</script>
+
+</body>
+</html>

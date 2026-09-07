@@ -1,9 +1,14 @@
+import { prisma } from "@/lib/prisma";
 import { pridobiNastavitve } from "@/lib/nastavitve";
 import { posodobiNastavitve, uvoziPredlogoStoritev } from "@/lib/actions";
+import { ustvariAdminUporabnika, izbrisiAdminUporabnika } from "@/lib/admin-auth-actions";
 import { DEJAVNOSTI, najdiDejavnost } from "@/lib/dejavnosti";
 
 export default async function NastavitveStran() {
-  const nastavitve = await pridobiNastavitve();
+  const [nastavitve, adminUporabniki] = await Promise.all([
+    pridobiNastavitve(),
+    prisma.adminUporabnik.findMany({ orderBy: { createdAt: "asc" } }),
+  ]);
   const dejavnost = najdiDejavnost(nastavitve.dejavnost);
 
   return (
@@ -76,6 +81,43 @@ export default async function NastavitveStran() {
             </form>
           </>
         )}
+      </div>
+
+      <div className="card space-y-3">
+        <h2 className="font-medium">Admin uporabniki</h2>
+        <p className="text-sm text-slate-500">
+          Poleg privzetega admina (nastavljen prek <code>.env</code>, glej <code>ADMIN_EMAIL</code>) lahko dodaš
+          dodatne uporabnike, ki se lahko prijavijo v <code>/admin</code>.
+        </p>
+        {adminUporabniki.length > 0 && (
+          <ul className="space-y-1.5">
+            {adminUporabniki.map((u) => (
+              <li key={u.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <span>{u.email}</span>
+                <form action={izbrisiAdminUporabnika.bind(null, u.id)}>
+                  <button className="text-xs text-red-600 hover:underline">Izbriši</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          key={adminUporabniki.length}
+          action={ustvariAdminUporabnika}
+          className="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3"
+        >
+          <div className="flex-1">
+            <label className="label">E-pošta</label>
+            <input type="email" name="email" required className="input" />
+          </div>
+          <div className="flex-1">
+            <label className="label">Geslo (vsaj 6 znakov)</label>
+            <input type="password" name="geslo" required minLength={6} className="input" />
+          </div>
+          <button type="submit" className="btn">
+            Dodaj uporabnika
+          </button>
+        </form>
       </div>
     </div>
   );

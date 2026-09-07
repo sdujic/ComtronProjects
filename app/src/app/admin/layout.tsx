@@ -4,9 +4,11 @@ import { TronXerpLogotip } from "@/components/TronXerpLogotip";
 import { ObvestilaZvonec } from "@/components/ObvestilaZvonec";
 import { prisma } from "@/lib/prisma";
 import { pridobiNastavitve } from "@/lib/nastavitve";
+import { odjavaAdmin } from "@/lib/admin-auth-actions";
 
-// Poenostavljen vstop brez prave avtentikacije - pred produkcijo je treba
-// dodati pravo prijavo (npr. NextAuth) in zaščititi vse /admin poti.
+// Prijava/odjava: middleware.ts ščiti vse /admin poti (glej tudi
+// src/lib/admin-seja.ts) - en sam admin uporabnik iz .env, enostavna
+// rešitev za MVP (glej .env.example za pojasnilo omejitev).
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const [lokacija, nastavitve] = await Promise.all([
     prisma.lokacija.findFirst({ where: { aktivna: true } }),
@@ -39,9 +41,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </div>
             )}
             <ObvestilaZvonec />
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-500">
-              <IkonaUporabnik className="h-5 w-5" />
-            </div>
+            <form action={odjavaAdmin}>
+              <button
+                type="submit"
+                title="Odjava"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-primary-500 hover:bg-primary-100"
+              >
+                <IkonaUporabnik className="h-5 w-5" />
+              </button>
+            </form>
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>

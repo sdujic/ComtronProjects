@@ -29,6 +29,20 @@ model Nastavitve {
   updatedAt     DateTime @updatedAt
 }
 
+// Dodatni admin uporabniki, ki jih admin doda prek /admin/nastavitve (glej
+// src/lib/admin-auth-actions.ts) - poleg "korenskega" admina iz
+// ADMIN_EMAIL/ADMIN_PASSWORD v .env (ki vedno deluje, tudi če je ta tabela
+// prazna/baza sveža). Geslo je HASHIRANO (bcryptjs), za razliko od
+// korenskega admina v .env (tam je namerna MVP poenostavitev, glej
+// .env.example) - tu, ker uporabnik izbere svoje geslo, je pravilno
+// hashirati od začetka.
+model AdminUporabnik {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  geslo     String
+  createdAt DateTime @default(now())
+}
+
 model Lokacija {
   id          String   @id @default(cuid())
   naziv       String
@@ -55,9 +69,44 @@ model Lokacija {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  zaposleni ZaposleniLokacija[]
-  termini   Termin[]
-  urniki    Urnik[]
+  zaposleni    ZaposleniLokacija[]
+  termini      Termin[]
+  urniki       Urnik[]
+  delovnaMesta DelovnoMesto[]
+}
+
+// Fizično delovno mesto na lokaciji (npr. dvižna rampa pri avtoservisu,
+// stol pri frizerju - glej Dejavnost.oznakaMesta v src/lib/dejavnosti.ts).
+// Vsako mesto podpira SVOJ nabor storitev (DelovnoMestoStoritev) - npr.
+// "Rampa 1" samo menjavo gum, "Rampa 2" menjavo gum IN redni servis. Eno
+// mesto lahko streže samo EN termin naenkrat, ne glede na izvajalca - to je
+// PRIMARNI pogoj zasedenosti (src/lib/dostopnost.ts), poleg (ne namesto)
+// preverjanja prostega izvajalca. Lokacija BREZ ijedne vrstice tukaj je
+// "neomejena" (obstoječe obnašanje - zasedenost samo po zaposlenih); admin
+// mora eksplicitno dodati vsaj eno mesto, da omejitev sploh začne veljati.
+model DelovnoMesto {
+  id         String   @id @default(cuid())
+  lokacijaId String
+  naziv      String
+  aktivno    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  lokacija Lokacija               @relation(fields: [lokacijaId], references: [id], onDelete: Cascade)
+  storitve DelovnoMestoStoritev[]
+  termini  Termin[]
+
+  @@index([lokacijaId])
+}
+
+model DelovnoMestoStoritev {
+  delovnoMestoId String
+  storitevId     String
+
+  delovnoMesto DelovnoMesto @relation(fields: [delovnoMestoId], references: [id], onDelete: Cascade)
+  storitev     Storitev     @relation(fields: [storitevId], references: [id], onDelete: Cascade)
+
+  @@id([delovnoMestoId, storitevId])
 }
 
 model KategorijaStoritve {
@@ -88,6 +137,7 @@ model Storitev {
   kategorija       KategorijaStoritve? @relation(fields: [kategorijaId], references: [id])
   izvajalci        ZaposleniStoritev[]
   terminStoritve   TerminStoritev[]
+  delovnaMesta     DelovnoMestoStoritev[]
 }
 
 model Zaposleni {
@@ -178,6 +228,11 @@ model Termin {
   lokacijaId   String
   strankaId    String
   zaposleniId  String?
+  // Fizično delovno mesto, ki ga ta termin zaseda (glej DelovnoMesto zgoraj)
+  // - null, če lokacija nima definiranih delovnih mest (neomejeno, samo po
+  // zaposlenih) ALI gre za storitev brez upravičenega mesta. Potrebno za
+  // preverjanje zasedenosti PO POSAMEZNEM mestu, ne le agregatno po lokaciji.
+  mestoId      String?
   cenaSkupaj   Float    @default(0)
   zapisek      String?
   // Registrska številka vozila za ta obisk (neobvezno, relevantno predvsem
@@ -188,14 +243,16 @@ model Termin {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  lokacija  Lokacija   @relation(fields: [lokacijaId], references: [id])
-  stranka   Stranka    @relation(fields: [strankaId], references: [id])
-  zaposleni Zaposleni? @relation(fields: [zaposleniId], references: [id])
+  lokacija  Lokacija      @relation(fields: [lokacijaId], references: [id])
+  stranka   Stranka       @relation(fields: [strankaId], references: [id])
+  zaposleni Zaposleni?    @relation(fields: [zaposleniId], references: [id])
+  mesto     DelovnoMesto? @relation(fields: [mestoId], references: [id])
 
   storitve TerminStoritev[]
 
   @@index([zaposleniId, datumOd])
   @@index([lokacijaId, datumOd])
+  @@index([mestoId, datumOd])
   @@index([strankaId])
 }
 

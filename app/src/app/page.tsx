@@ -15,7 +15,7 @@ export default async function Domov() {
       <Link href="/rezervacija" className="btn">
         Rezerviraj termin
       </Link>
-      <Link href="/admin" className="text-sm text-slate-400 underline">
+      <Link href="/admin" className="btn-secondary">
         Admin vstop
       </Link>
       <div className="mt-6 flex flex-col items-center gap-1 text-xs text-slate-400">

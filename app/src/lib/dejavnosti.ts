@@ -14,6 +14,10 @@ export interface Dejavnost {
   naziv: string;
   slogan: string;
   oznakaTermina: string; // npr. "servis vozila", "striženje", "masažo" - za vstavljanje v besedilo
+  // Rodilnik množine za fizično delovno mesto te dejavnosti (npr. "ramp",
+  // "frizerskih stolov") - za besedilo "Število {oznakaMesta}" na
+  // /admin/lokacije, glej Lokacija.steviloDelovnihMest.
+  oznakaMesta: string;
   kategorija: string;
   predlogeStoritev: PredlogaStoritve[];
 }
@@ -24,6 +28,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Avtoservis",
     slogan: "Rezervirajte termin za servis vašega vozila v nekaj klikih.",
     oznakaTermina: "servis vozila",
+    oznakaMesta: "ramp",
     kategorija: "Redno vzdrževanje",
     predlogeStoritev: [
       { naziv: "Redni servis", opis: "Zamenjava olja in filtrov, splošen pregled vozila.", trajanjeMin: 60, cena: 89 },
@@ -37,6 +42,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Frizerski salon",
     slogan: "Rezervirajte termin pri svojem frizerju v nekaj klikih.",
     oznakaTermina: "striženje",
+    oznakaMesta: "frizerskih stolov",
     kategorija: "Frizerske storitve",
     predlogeStoritev: [
       { naziv: "Moško striženje", trajanjeMin: 30, cena: 18 },
@@ -51,6 +57,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Inštalacije in servis (klime ipd.)",
     slogan: "Rezervirajte termin za montažo ali servis v nekaj klikih.",
     oznakaTermina: "montažo ali servis",
+    oznakaMesta: "servisnih ekip",
     kategorija: "Klimatske naprave",
     predlogeStoritev: [
       { naziv: "Montaža klimatske naprave", trajanjeMin: 180, cena: 150 },
@@ -64,6 +71,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Dimnikarstvo",
     slogan: "Rezervirajte termin za dimnikarski pregled v nekaj klikih.",
     oznakaTermina: "dimnikarski pregled",
+    oznakaMesta: "dimnikarskih ekip",
     kategorija: "Dimnikarske storitve",
     predlogeStoritev: [
       { naziv: "Redni dimnikarski pregled", trajanjeMin: 45, cena: 40 },
@@ -77,6 +85,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Spa in masaže",
     slogan: "Rezervirajte termin za sprostitev v nekaj klikih.",
     oznakaTermina: "masažo",
+    oznakaMesta: "masažnih kabin",
     kategorija: "Sprostitvene storitve",
     predlogeStoritev: [
       { naziv: "Klasična masaža (60 min)", trajanjeMin: 60, cena: 45 },
@@ -90,6 +99,7 @@ export const DEJAVNOSTI: Dejavnost[] = [
     naziv: "Drugo",
     slogan: "Rezervirajte termin v nekaj klikih.",
     oznakaTermina: "termin",
+    oznakaMesta: "delovnih mest",
     kategorija: "Storitve",
     predlogeStoritev: [],
   },

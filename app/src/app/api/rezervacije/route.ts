@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { POLJUBNA_STORITEV_SENTINEL, zagotoviPoljubnoStoritev } from "@/lib/poljubna-storitev";
-import { najdiProstegaZaposlenega } from "@/lib/dostopnost";
+import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto } from "@/lib/dostopnost";
+import { jeVeljavenEmail } from "@/lib/validacija";
+
+// Splošna (ne po-državna) preverba oblike sestavljene telefonske številke
+// (klicna koda + številka, npr. "+38641234567") - natančno preverjanje po
+// posamezni državi (dolžina glede na izbrano državo) se zgodi na klientu,
+// kjer je znano, katera država je bila izbrana (glej rezervacija/page.tsx,
+// jeVeljavnaStevilka). Tu samo osnovna zaščita pred očitno neveljavnimi
+// vrednostmi pri neposrednem API klicu mimo obrazca.
+const TELEFON_REGEX = /^\+\d{7,15}$/;
 
 export async function POST(req: Request) {
   const podatki = await req.json();
@@ -13,16 +22,35 @@ export async function POST(req: Request) {
   if (storitevId === POLJUBNA_STORITEV_SENTINEL && !String(opisZelje || "").trim()) {
     return NextResponse.json({ napaka: "Opis želje je obvezen" }, { status: 400 });
   }
+  if (!TELEFON_REGEX.test(String(stranka.telefon))) {
+    return NextResponse.json({ napaka: "Neveljavna telefonska številka" }, { status: 400 });
+  }
+  if (stranka.email && !jeVeljavenEmail(String(stranka.email))) {
+    return NextResponse.json({ napaka: "Neveljaven e-poštni naslov" }, { status: 400 });
+  }
 
-  const storitev =
+  // Hitrostna optimizacija (7.9.2026): te tri poizvedbe so med seboj
+  // neodvisne (mesto rabi samo surov storitevId/lokacijaId, ne rezultat
+  // storitve) - prej so tekle ena za drugo, zdaj vzporedno.
+  const [storitev, obstojecaStranka, mestoRezultat] = await Promise.all([
     storitevId === POLJUBNA_STORITEV_SENTINEL
-      ? await zagotoviPoljubnoStoritev()
-      : await prisma.storitev.findUnique({ where: { id: storitevId } });
+      ? zagotoviPoljubnoStoritev()
+      : prisma.storitev.findUnique({ where: { id: storitevId } }),
+    prisma.stranka.findFirst({ where: { telefon: stranka.telefon } }),
+    // Fizično delovno mesto (rampa/stol ipd.), upravičeno za TO storitev, je
+    // PRIMARNI pogoj - glej dostopnost.ts, najdiProstoDelovnoMesto. Uporabimo
+    // surov storitevId (lahko sentinel POLJUBNA), ne razrešen storitev.id -
+    // isto kot pregledDneva.
+    najdiProstoDelovnoMesto({ storitevId, lokacijaId, datumOd: new Date(datumOd), datumDo: new Date(datumDo) }),
+  ]);
   if (!storitev) {
     return NextResponse.json({ napaka: "Storitev ne obstaja" }, { status: 404 });
   }
+  if (mestoRezultat.omejeno && !mestoRezultat.mestoId) {
+    return NextResponse.json({ napaka: "Za izbran termin žal ni več prostega delovnega mesta" }, { status: 409 });
+  }
 
-  let strankaZapis = await prisma.stranka.findFirst({ where: { telefon: stranka.telefon } });
+  let strankaZapis = obstojecaStranka;
   if (!strankaZapis) {
     strankaZapis = await prisma.stranka.create({
       data: {
@@ -64,6 +92,7 @@ export async function POST(req: Request) {
       lokacijaId,
       strankaId: strankaZapis.id,
       zaposleniId: koncniZaposleniId,
+      mestoId: mestoRezultat.mestoId,
       cenaSkupaj: storitev.cena,
       zapisek: storitevId === POLJUBNA_STORITEV_SENTINEL ? String(opisZelje).trim() : null,
       registracija: registracija ? String(registracija).trim().toUpperCase() : null,

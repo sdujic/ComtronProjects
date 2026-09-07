@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { tronXerpAdapter } from "@/lib/tronxerp-adapter";
 import { najdiDejavnost } from "@/lib/dejavnosti";
 import { pridobiNastavitve } from "@/lib/nastavitve";
-import { najdiProstegaZaposlenega } from "@/lib/dostopnost";
+import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto } from "@/lib/dostopnost";
 
 export async function posodobiNastavitve(formData: FormData) {
   const korakMinutTermina = Math.min(30, Math.max(1, Number(formData.get("korakMinutTermina")) || 5));
@@ -77,11 +77,16 @@ export async function ustvariLokacijo(formData: FormData) {
 
 // Koordinate se vnašajo ročno (kopirano iz Google Maps/OpenStreetMap - desni
 // klik na lokacijo -> koordinate v oklepaju) - ni samodejnega geokodiranja
-// iz naslova, glej opombo pri Lokacija.lat v schema.prisma.
-export async function posodobiKoordinateLokacije(id: string, formData: FormData) {
+// iz naslova, glej opombo pri Lokacija.lat v schema.prisma. Fizična delovna
+// mesta (rampe/stoli - primarni pogoj zasedenosti) se urejajo LOČENO, glej
+// ustvariDelovnoMesto spodaj.
+export async function posodobiNastavitveLokacije(id: string, formData: FormData) {
   await prisma.lokacija.update({
     where: { id },
-    data: { lat: parsiKoordinato(formData, "lat"), lng: parsiKoordinato(formData, "lng") },
+    data: {
+      lat: parsiKoordinato(formData, "lat"),
+      lng: parsiKoordinato(formData, "lng"),
+    },
   });
   revalidatePath("/admin/lokacije");
 }
@@ -179,6 +184,47 @@ export async function izbrisiZaposlenega(id: string) {
   revalidatePath("/admin/zaposleni");
 }
 
+// Fizično delovno mesto (rampa/stol ipd., glej DelovnoMesto v
+// schema.prisma) - vsako mesto ima SVOJ nabor storitev, ki jih lahko
+// izvaja (npr. "Rampa 1" samo menjavo gum, "Rampa 2" tudi redni servis).
+// To je PRIMARNI pogoj zasedenosti, glej dostopnost.ts.
+export async function ustvariDelovnoMesto(lokacijaId: string, formData: FormData) {
+  const naziv = String(formData.get("naziv") || "").trim();
+  if (!naziv) return;
+  const storitveIds = formData.getAll("storitveIds").map(String);
+
+  await prisma.delovnoMesto.create({
+    data: {
+      lokacijaId,
+      naziv,
+      storitve: { create: storitveIds.map((storitevId) => ({ storitevId })) },
+    },
+  });
+  revalidatePath("/admin/lokacije");
+}
+
+// Posodobi naziv IN cel nabor storitev za obstoječe delovno mesto (naziv
+// preprosto update, storitve izbriši vse pa ustvari izbrane - enostavnejše
+// od primerjave razlik, varno ker DelovnoMestoStoritev nima lastnih
+// podatkov razen veznih ključev).
+export async function posodobiDelovnoMesto(id: string, formData: FormData) {
+  const naziv = String(formData.get("naziv") || "").trim();
+  const storitveIds = formData.getAll("storitveIds").map(String);
+  await prisma.$transaction([
+    prisma.delovnoMesto.update({ where: { id }, data: naziv ? { naziv } : {} }),
+    prisma.delovnoMestoStoritev.deleteMany({ where: { delovnoMestoId: id } }),
+    prisma.delovnoMestoStoritev.createMany({
+      data: storitveIds.map((storitevId) => ({ delovnoMestoId: id, storitevId })),
+    }),
+  ]);
+  revalidatePath("/admin/lokacije");
+}
+
+export async function izbrisiDelovnoMesto(id: string) {
+  await prisma.delovnoMesto.update({ where: { id }, data: { aktivno: false } });
+  revalidatePath("/admin/lokacije");
+}
+
 export async function dodajZapisekStranki(strankaId: string, formData: FormData) {
   const besedilo = String(formData.get("besedilo") || "");
   if (!besedilo.trim()) return;
@@ -216,6 +262,14 @@ export async function ustvariTerminAdmin(formData: FormData) {
   const datumDo = new Date(datumOd.getTime() + storitev.trajanjeMin * 60000);
   const lokacijaId = String(formData.get("lokacijaId"));
 
+  // Fizično delovno mesto (rampa/stol ipd.) je PRIMARNI pogoj - preverimo
+  // PRED izvajalcem, tudi če je izvajalec sam po sebi prost, termina ne
+  // ustvarimo, če ni prostega mesta, upravičenega za TO storitev.
+  const mestoRezultat = await najdiProstoDelovnoMesto({ storitevId, lokacijaId, datumOd, datumDo });
+  if (mestoRezultat.omejeno && !mestoRezultat.mestoId) {
+    throw new Error("Za izbrano storitev trenutno ni prostega delovnega mesta na tej lokaciji.");
+  }
+
   // Termin brez zaposleniId je neviden za preverjanje zasedenosti (glej
   // dostopnost.ts) - zato pri "-- samodejno --" izbiri poskusimo dodeliti
   // prvega prostega upravičenega izvajalca. Če nihče ni prost, termina NE
@@ -242,6 +296,7 @@ export async function ustvariTerminAdmin(formData: FormData) {
       lokacijaId,
       strankaId: String(formData.get("strankaId")),
       zaposleniId,
+      mestoId: mestoRezultat.mestoId,
       cenaSkupaj: storitev.cena,
       registracija: String(formData.get("registracija") || "").trim().toUpperCase() || null,
       storitve: {

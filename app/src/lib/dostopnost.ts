@@ -165,20 +165,117 @@ export async function najdiProstegaZaposlenega(params: {
 }): Promise<string | null> {
   const { storitevId, lokacijaId, datumOd, datumDo } = params;
   const resitev = await resiIzvajalceInTrajanje(storitevId, undefined, lokacijaId);
-  if (!resitev) return null;
+  if (!resitev || resitev.izvajalci.length === 0) return null;
 
+  // En paketen poizvedovanje namesto po ene na zaposlenega (hitrostna
+  // optimizacija, 7.9.2026 - prej N zaporednih poizvedb, zdaj vedno ena).
+  const zasedeni = await zasedeniIzMnozice(
+    resitev.izvajalci.map((z) => z.id),
+    "zaposleniId",
+    datumOd,
+    datumDo
+  );
   for (const zaposleni of resitev.izvajalci) {
-    const prekrivanje = await prisma.termin.findFirst({
-      where: {
-        zaposleniId: zaposleni.id,
-        status: { not: "ODPOVEDAN" },
-        datumOd: { lt: datumDo },
-        datumDo: { gt: datumOd },
-      },
-    });
-    if (!prekrivanje) return zaposleni.id;
+    if (!zasedeni.has(zaposleni.id)) return zaposleni.id;
   }
   return null;
+}
+
+// Paketno preveri zasedenost VEČ kandidatov (zaposleni ali delovna mesta)
+// hkrati z ENO poizvedbo namesto ene na kandidata - hitrostna optimizacija.
+// `polje` je ime FK stolpca na Terminu ("zaposleniId" ali "mestoId").
+async function zasedeniIzMnozice(
+  idji: string[],
+  polje: "zaposleniId" | "mestoId",
+  datumOd: Date,
+  datumDo: Date
+): Promise<Set<string>> {
+  if (idji.length === 0) return new Set();
+  const termini =
+    polje === "zaposleniId"
+      ? await prisma.termin.findMany({
+          where: { zaposleniId: { in: idji }, status: { not: "ODPOVEDAN" }, datumOd: { lt: datumDo }, datumDo: { gt: datumOd } },
+          select: { zaposleniId: true },
+        })
+      : await prisma.termin.findMany({
+          where: { mestoId: { in: idji }, status: { not: "ODPOVEDAN" }, datumOd: { lt: datumDo }, datumDo: { gt: datumOd } },
+          select: { mestoId: true },
+        });
+  const zasedeni = new Set<string>();
+  for (const t of termini) {
+    const vrednost = polje === "zaposleniId" ? (t as { zaposleniId: string | null }).zaposleniId : (t as { mestoId: string | null }).mestoId;
+    if (vrednost != null) zasedeni.add(vrednost);
+  }
+  return zasedeni;
+}
+
+// Vrne upravičena delovna mesta za to storitev na tej lokaciji - poljubna
+// storitev (glej poljubna-storitev.ts) ni vezana na specifično mesto,
+// zato je zanjo upravičeno VSAKO aktivno mesto (ista poenostavitev kot pri
+// izvajalcih v resiIzvajalceInTrajanje - katerokoli mesto lahko sprejme
+// poljubno željo/težavo).
+//
+// Sortirano naraščajoče po številu storitev, ki jih mesto podpira (najbolj
+// "ekskluzivna" mesta najprej) - pomembno pri DODELJEVANJU (glej
+// najdiProstoDelovnoMesto): če ima npr. avtoservis "Rampo 1" (samo menjava
+// gum) in "Rampo 2" (menjava gum + redni servis), mora rezervacija za
+// menjavo gum prednostno zasesti Rampo 1, NE Rampe 2 - sicer bi po
+// nepotrebnem zasedla edino rampo, ki zna redni servis, in bi ta storitev
+// postala nedosegljiva, čeprav bi Rampa 1 zadoščala. To je naročnikova
+// izrecna zahteva (7.9.2026, primer z 2 rampama).
+async function upravicenaDelovnaMesta(storitevId: string, lokacijaId: string) {
+  const mesta =
+    storitevId === POLJUBNA_STORITEV_SENTINEL
+      ? await prisma.delovnoMesto.findMany({
+          where: { lokacijaId, aktivno: true },
+          include: { _count: { select: { storitve: true } } },
+        })
+      : await prisma.delovnoMesto.findMany({
+          where: { lokacijaId, aktivno: true, storitve: { some: { storitevId } } },
+          include: { _count: { select: { storitve: true } } },
+        });
+  return mesta.sort((a, b) => a._count.storitve - b._count.storitve);
+}
+
+export interface RezultatDelovnegaMesta {
+  // Ali ima ta LOKACIJA sploh definirana delovna mesta - če ne (privzeto
+  // stanje), ni omejitve (obstoječe obnašanje, samo po zaposlenih), ne
+  // glede na storitev.
+  omejeno: boolean;
+  // Id prostega upravičenega mesta, ali null, če je lokacija omejena IN ni
+  // nobeno mesto prosto (ali ta storitev na tej lokaciji nima nobenega
+  // upravičenega mesta - admin ga ni dodal na noben ramp/stol).
+  mestoId: string | null;
+}
+
+// Primarni pogoj zasedenosti - poišče prosto fizično delovno mesto (rampa,
+// stol ipd., glej DelovnoMesto v schema.prisma) za točno to storitev/termin.
+// Eno mesto streže samo EN termin naenkrat, ne glede na izvajalca. Uporabi
+// se PRED ustvarjanjem termina (ustvariTerminAdmin, /api/rezervacije), da
+// fizične kapacitete ni mogoče preseči, tudi če je izvajalec sam po sebi
+// prost.
+export async function najdiProstoDelovnoMesto(params: {
+  storitevId: string;
+  lokacijaId: string;
+  datumOd: Date;
+  datumDo: Date;
+}): Promise<RezultatDelovnegaMesta> {
+  const { storitevId, lokacijaId, datumOd, datumDo } = params;
+
+  const steviloVsehMest = await prisma.delovnoMesto.count({ where: { lokacijaId, aktivno: true } });
+  if (steviloVsehMest === 0) return { omejeno: false, mestoId: null };
+
+  const upravicena = await upravicenaDelovnaMesta(storitevId, lokacijaId);
+  const zasedena = await zasedeniIzMnozice(
+    upravicena.map((m) => m.id),
+    "mestoId",
+    datumOd,
+    datumDo
+  );
+  for (const mesto of upravicena) {
+    if (!zasedena.has(mesto.id)) return { omejeno: true, mestoId: mesto.id };
+  }
+  return { omejeno: true, mestoId: null };
 }
 
 // Vrne VSE upravičene izvajalce, ki so dejansko prosti v točno tem
@@ -195,19 +292,15 @@ export async function prostiIzvajalciZaTermin(params: {
   const resitev = await resiIzvajalceInTrajanje(storitevId, undefined, lokacijaId);
   if (!resitev) return [];
 
-  const prosti = [];
-  for (const zaposleni of resitev.izvajalci) {
-    const prekrivanje = await prisma.termin.findFirst({
-      where: {
-        zaposleniId: zaposleni.id,
-        status: { not: "ODPOVEDAN" },
-        datumOd: { lt: datumDo },
-        datumDo: { gt: datumOd },
-      },
-    });
-    if (!prekrivanje) prosti.push({ id: zaposleni.id, ime: zaposleni.ime, priimek: zaposleni.priimek });
-  }
-  return prosti;
+  const zasedeni = await zasedeniIzMnozice(
+    resitev.izvajalci.map((z) => z.id),
+    "zaposleniId",
+    datumOd,
+    datumDo
+  );
+  return resitev.izvajalci
+    .filter((z) => !zasedeni.has(z.id))
+    .map((z) => ({ id: z.id, ime: z.ime, priimek: z.priimek }));
 }
 
 export async function pregledDneva(params: {
@@ -241,21 +334,57 @@ export async function pregledDneva(params: {
   const koncDneva = new Date(datum);
   koncDneva.setHours(23, 59, 59, 999);
 
-  // minuta od polnoci -> katera izvajalci so na ta slot prosti
-  const prostiPoMinuti = new Map<number, Set<string>>();
-
-  for (const zaposleni of izvajalci) {
-    const urnik = await prisma.urnik.findFirst({ where: { zaposleniId: zaposleni.id, lokacijaId, dan } });
-    if (!urnik) continue;
-
-    const obstojeciTermini = await prisma.termin.findMany({
+  // Hitrostna optimizacija (7.9.2026): prej je zanka spodaj za VSAKEGA
+  // zaposlenega posebej poizvedovala urnik + termine (2*N poizvedb
+  // zaporedno) - zdaj vse potrebno pridobimo v NAJVEČ 4 vzporednih
+  // poizvedbah (Promise.all), ne glede na število zaposlenih/mest, nato
+  // obdelamo v pomnilniku. Pri tedenskem/mesečnem pregledu (7x/31x klic
+  // pregledDneva) je bil ta N+1 vzorec glavni vzrok počasnega odpiranja
+  // prostih terminov.
+  const izvajalciIds = izvajalci.map((z) => z.id);
+  const [urniki, terminiZaposlenih, steviloVsehMest, upravicenaMesta] = await Promise.all([
+    prisma.urnik.findMany({ where: { zaposleniId: { in: izvajalciIds }, lokacijaId, dan } }),
+    prisma.termin.findMany({
       where: {
-        zaposleniId: zaposleni.id,
+        zaposleniId: { in: izvajalciIds },
         status: { not: "ODPOVEDAN" },
         datumOd: { lte: koncDneva },
         datumDo: { gte: zacetekDneva },
       },
-    });
+    }),
+    prisma.delovnoMesto.count({ where: { lokacijaId, aktivno: true } }),
+    upravicenaDelovnaMesta(storitevId, lokacijaId),
+  ]);
+  const jeOmejenoZMesti = steviloVsehMest > 0;
+  const terminiMest =
+    jeOmejenoZMesti && upravicenaMesta.length > 0
+      ? await prisma.termin.findMany({
+          where: {
+            mestoId: { in: upravicenaMesta.map((m) => m.id) },
+            status: { not: "ODPOVEDAN" },
+            datumOd: { lte: koncDneva },
+            datumDo: { gte: zacetekDneva },
+          },
+        })
+      : [];
+
+  const urnikPoZaposlenem = new Map(urniki.map((u) => [u.zaposleniId, u]));
+  const terminiPoZaposlenem = new Map<string, typeof terminiZaposlenih>();
+  for (const t of terminiZaposlenih) {
+    if (!t.zaposleniId) continue;
+    const seznam = terminiPoZaposlenem.get(t.zaposleniId);
+    if (seznam) seznam.push(t);
+    else terminiPoZaposlenem.set(t.zaposleniId, [t]);
+  }
+
+  // minuta od polnoci -> katera izvajalci so na ta slot prosti
+  const prostiPoMinuti = new Map<number, Set<string>>();
+
+  for (const zaposleni of izvajalci) {
+    const urnik = urnikPoZaposlenem.get(zaposleni.id);
+    if (!urnik) continue;
+
+    const obstojeciTermini = terminiPoZaposlenem.get(zaposleni.id) ?? [];
 
     const odMin = casVMinute(urnik.casRezervacijOd);
     const doMin = casVMinute(urnik.casRezervacijDo);
@@ -277,14 +406,28 @@ export async function pregledDneva(params: {
     .map(([slotOd, prostiSet]) => {
       const datumOd = datumOb(datum, minuteVCas(slotOd));
       const datumDo = datumOb(datum, minuteVCas(slotOd + trajanjeMin));
-      const prost = prostiSet.size > 0;
+
+      // Fizično delovno mesto je PRIMARNI pogoj - kolikor je prostih
+      // upravičenih mest, toliko je (kvečjemu) prostih terminov, ČEPRAV bi
+      // bilo po izvajalcih prostih več. Če za to storitev na tej lokaciji
+      // ni NOBENEGA upravičenega mesta (admin ga ni dodal na noben
+      // ramp/stol), je prostihMest vedno 0 - storitev tu ni izvedljiva.
+      let prostihMest = prostiSet.size;
+      if (jeOmejenoZMesti) {
+        const prostaMesta = upravicenaMesta.filter(
+          (m) => !terminiMest.some((t) => t.mestoId === m.id && datumOd < t.datumDo && datumDo > t.datumOd)
+        ).length;
+        prostihMest = Math.min(prostihMest, prostaMesta);
+      }
+
+      const prost = prostihMest > 0;
       return {
         ura: minuteVCas(slotOd),
         datumOd,
         datumDo,
         prost,
         zaposleniId: prost ? [...prostiSet][0] : undefined,
-        prostihMest: prostiSet.size,
+        prostihMest,
       };
     });
 
@@ -306,13 +449,14 @@ export async function pregledTedna(params: {
   datum: Date;
 }): Promise<DnevniPregled[]> {
   const ponedeljek = ponedeljekTedna(params.datum);
-  const dnevi: DnevniPregled[] = [];
-  for (let i = 0; i < 7; i++) {
+  // Hitrostna optimizacija (7.9.2026): 7 dni vzporedno namesto zaporedno -
+  // prej je vsak naslednji dan čakal na prejšnjega, čeprav so neodvisni.
+  const dnevi = Array.from({ length: 7 }, (_, i) => {
     const dan = new Date(ponedeljek);
     dan.setDate(dan.getDate() + i);
-    dnevi.push(await pregledDneva({ ...params, datum: dan }));
-  }
-  return dnevi;
+    return dan;
+  });
+  return Promise.all(dnevi.map((datum) => pregledDneva({ ...params, datum })));
 }
 
 export interface DanPovzetek {
@@ -331,18 +475,15 @@ export async function pregledMeseca(params: {
 }): Promise<DanPovzetek[]> {
   const { leto, mesec, ...ostalo } = params;
   const steviloDni = new Date(leto, mesec, 0).getDate();
-  const rezultat: DanPovzetek[] = [];
+  // Hitrostna optimizacija (7.9.2026): vsi dnevi v mesecu vzporedno namesto
+  // zaporedno (prej do 31 zaporednih klicev pregledDneva).
+  const dnevi = Array.from({ length: steviloDni }, (_, i) => new Date(leto, mesec - 1, i + 1));
+  const rezultati = await Promise.all(dnevi.map((datum) => pregledDneva({ ...ostalo, datum })));
 
-  for (let d = 1; d <= steviloDni; d++) {
-    const datum = new Date(leto, mesec - 1, d);
-    const dan = await pregledDneva({ ...ostalo, datum });
-    rezultat.push({
-      datum: dan.datum,
-      zaprto: dan.zaprto,
-      razlogZaprtja: dan.razlogZaprtja,
-      steviloProstih: dan.sloti.filter((s) => s.prost).length,
-    });
-  }
-
-  return rezultat;
+  return rezultati.map((dan) => ({
+    datum: dan.datum,
+    zaprto: dan.zaprto,
+    razlogZaprtja: dan.razlogZaprtja,
+    steviloProstih: dan.sloti.filter((s) => s.prost).length,
+  }));
 }

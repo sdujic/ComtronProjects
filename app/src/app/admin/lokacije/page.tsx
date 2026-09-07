@@ -1,23 +1,62 @@
 import { prisma } from "@/lib/prisma";
-import { ustvariLokacijo, izbrisiLokacijo, preklopiDanLokacije, posodobiKoordinateLokacije } from "@/lib/actions";
+import {
+  ustvariLokacijo,
+  izbrisiLokacijo,
+  preklopiDanLokacije,
+  posodobiNastavitveLokacije,
+  ustvariDelovnoMesto,
+  posodobiDelovnoMesto,
+  izbrisiDelovnoMesto,
+} from "@/lib/actions";
+import { pridobiNastavitve } from "@/lib/nastavitve";
+import { najdiDejavnost } from "@/lib/dejavnosti";
 
 export default async function LokacijeStran() {
-  const lokacije = await prisma.lokacija.findMany({ where: { aktivna: true } });
+  const [lokacije, storitve, nastavitve] = await Promise.all([
+    prisma.lokacija.findMany({
+      where: { aktivna: true },
+      include: { delovnaMesta: { where: { aktivno: true }, include: { storitve: true } } },
+    }),
+    prisma.storitev.findMany({ where: { aktivna: true, jePoljubna: false } }),
+    pridobiNastavitve(),
+  ]);
+  const dejavnost = najdiDejavnost(nastavitve.dejavnost);
 
   return (
     <div className="max-w-2xl space-y-8">
       <h1 className="text-xl font-bold">Lokacije</h1>
 
       <div className="space-y-3">
-        {lokacije.map((l) => (
-          <div key={l.id} className="card flex items-center justify-between">
-            <div>
-              <div className="font-medium">{l.naziv}</div>
-              <div className="text-sm text-slate-500">{l.naslov}</div>
-              <div className="text-sm text-slate-500">
-                {l.delovniCas} · dela prosti dnevi: {l.drzava}
+        {lokacije.map((l) => {
+          const storitveIzMest = new Set(l.delovnaMesta.flatMap((m) => m.storitve.map((s) => s.storitevId)));
+          return (
+            <div key={l.id} className="card space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-medium">{l.naziv}</div>
+                  <div className="text-sm text-slate-500">{l.naslov}</div>
+                  <div className="text-sm text-slate-500">
+                    {l.delovniCas} · dela prosti dnevi: {l.drzava}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <form action={preklopiDanLokacije.bind(null, l.id, "odprtoSobota", l.odprtoSobota)}>
+                    <button type="submit" className={`znacka ${l.odprtoSobota ? "znacka-zakljucen" : "znacka-neprihod"}`}>
+                      Sobota: {l.odprtoSobota ? "odprto" : "zaprto"}
+                    </button>
+                  </form>
+                  <form action={preklopiDanLokacije.bind(null, l.id, "odprtoNedelja", l.odprtoNedelja)}>
+                    <button type="submit" className={`znacka ${l.odprtoNedelja ? "znacka-zakljucen" : "znacka-neprihod"}`}>
+                      Nedelja: {l.odprtoNedelja ? "odprto" : "zaprto"}
+                    </button>
+                  </form>
+                  <form action={izbrisiLokacijo.bind(null, l.id)}>
+                    <button className="text-sm text-red-600 hover:underline">Izbriši</button>
+                  </form>
+                </div>
               </div>
-              <form action={posodobiKoordinateLokacije.bind(null, l.id)} className="mt-2 flex items-center gap-1.5">
+
+              <form action={posodobiNastavitveLokacije.bind(null, l.id)} className="flex flex-wrap items-center gap-1.5">
                 <input
                   type="number"
                   step="any"
@@ -41,24 +80,89 @@ export default async function LokacijeStran() {
                   <span className="text-xs text-amber-600">brez koordinat - ne bo na zemljevidu</span>
                 )}
               </form>
+
+              <div className="border-t border-slate-100 pt-3">
+                <h3 className="mb-2 text-sm font-medium capitalize">
+                  Delovna mesta ({dejavnost.oznakaMesta})
+                </h3>
+                {l.delovnaMesta.length === 0 && (
+                  <p className="mb-2 text-xs text-amber-600">
+                    Brez definiranih mest - zasedenost tu velja SAMO po zaposlenih (obstoječe obnašanje).
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {l.delovnaMesta.map((m) => {
+                    const izbraneStoritve = new Set(m.storitve.map((s) => s.storitevId));
+                    return (
+                      <form
+                        key={m.id}
+                        action={posodobiDelovnoMesto.bind(null, m.id)}
+                        className="rounded-lg border border-slate-200 p-2.5"
+                      >
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <input
+                            name="naziv"
+                            required
+                            defaultValue={m.naziv}
+                            className="input py-1 text-sm font-medium"
+                          />
+                          <div className="flex shrink-0 items-center gap-2">
+                            <button type="submit" className="btn-secondary py-0.5 text-xs">
+                              Shrani
+                            </button>
+                            <button
+                              formAction={izbrisiDelovnoMesto.bind(null, m.id)}
+                              className="text-xs text-red-600 hover:underline"
+                            >
+                              Izbriši
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1">
+                          {storitve.map((s) => (
+                            <label key={s.id} className="flex items-center gap-1 text-xs text-slate-600">
+                              <input
+                                type="checkbox"
+                                name="storitveIds"
+                                value={s.id}
+                                defaultChecked={izbraneStoritve.has(s.id)}
+                              />
+                              {s.naziv}
+                            </label>
+                          ))}
+                        </div>
+                      </form>
+                    );
+                  })}
+                </div>
+
+                <form
+                  key={l.delovnaMesta.length}
+                  action={ustvariDelovnoMesto.bind(null, l.id)}
+                  className="mt-2 rounded-lg border border-dashed border-slate-300 p-2.5"
+                >
+                  <input
+                    name="naziv"
+                    required
+                    placeholder="Naziv novega mesta (npr. Rampa 1)"
+                    className="input mb-1.5 py-1 text-xs"
+                  />
+                  <div className="mb-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                    {storitve.map((s) => (
+                      <label key={s.id} className="flex items-center gap-1 text-xs text-slate-600">
+                        <input type="checkbox" name="storitveIds" value={s.id} />
+                        {s.naziv}
+                      </label>
+                    ))}
+                  </div>
+                  <button type="submit" className="btn-secondary py-1 text-xs">
+                    Dodaj mesto
+                  </button>
+                </form>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <form action={preklopiDanLokacije.bind(null, l.id, "odprtoSobota", l.odprtoSobota)}>
-                <button type="submit" className={`znacka ${l.odprtoSobota ? "znacka-zakljucen" : "znacka-neprihod"}`}>
-                  Sobota: {l.odprtoSobota ? "odprto" : "zaprto"}
-                </button>
-              </form>
-              <form action={preklopiDanLokacije.bind(null, l.id, "odprtoNedelja", l.odprtoNedelja)}>
-                <button type="submit" className={`znacka ${l.odprtoNedelja ? "znacka-zakljucen" : "znacka-neprihod"}`}>
-                  Nedelja: {l.odprtoNedelja ? "odprto" : "zaprto"}
-                </button>
-              </form>
-              <form action={izbrisiLokacijo.bind(null, l.id)}>
-                <button className="text-sm text-red-600 hover:underline">Izbriši</button>
-              </form>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <form action={ustvariLokacijo} className="card space-y-3">
@@ -109,6 +213,9 @@ export default async function LokacijeStran() {
         <button type="submit" className="btn">
           Dodaj lokacijo
         </button>
+        <p className="text-xs text-slate-400">
+          Delovna mesta ({dejavnost.oznakaMesta}) dodaš po ustvarjanju lokacije, spodaj v seznamu.
+        </p>
       </form>
     </div>
   );
