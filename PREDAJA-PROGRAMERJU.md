@@ -21,6 +21,8 @@ Vse v `NarocanjeAplikacija/` (ta mapa):
 | `TRONxERP-API-swagger-najdba.md` | Odkritje, da TRONxERP ima namenski REST API ("TronOfficeAPI") - seznam endpointov. |
 | **`TronOfficeAPI-referenca.md`** | **Polna referenca TronOfficeAPI** (edini vir resnice za natančne sheme zahtev/odgovorov, zajeto iz swagger UI naročnika) - `doLogin`, `importOrder`, `saveCustomer`, `saveArticle`, exKey mehanizem itd. Glej razdelek 8 spodaj za pomembno vrzel. |
 | `app/.env.example` | Predloga za `.env` - vse spremenljivke okolja z razlago. |
+| `PRIPRAVA-ZA-GOSTOVANJE.md` | Kaj je pripravljeno za javno objavo, varnostni checklist, korak-za-korakom pot za Vercel + PostgreSQL. |
+| `Navodila-NarocanjeNaTermin.html` | Interaktivna uporabniška navodila (odpri v brskalniku) - ločeno za stranke (javni obrazec) in za osebje (administracija), z zaslonskimi posnetki. Slike v `Navodila-slike/`. |
 
 Koda: `app/` - Next.js 14 (App Router) + TypeScript + Prisma + Tailwind. Struktura opisana na dnu `app/README.md`.
 
@@ -34,7 +36,9 @@ npx tsx prisma/seed.ts
 npm run dev
 ```
 
-Teče na `http://localhost:3000` (javni del) in `http://localhost:3000/admin` (admin, **brez prave prijave** - glej razdelek 6). Razvojno okolje uporablja SQLite (`dev.db`, samodejno ustvarjena). Za produkcijo glej `.env.example` in spremeni `provider` v `prisma/schema.prisma` iz `sqlite` v `postgresql`.
+Teče na `http://localhost:3000` (javni del) in `http://localhost:3000/admin` (admin, **zaščiten s prijavo** - privzeti testni podatki `admin@admin.si`/`123`, glej `app/README.md` razdelek "Prijava v admin"). Razvojno okolje uporablja SQLite (`dev.db`, samodejno ustvarjena). Za produkcijo glej `PRIPRAVA-ZA-GOSTOVANJE.md` za preklop na PostgreSQL in celoten postopek objave.
+
+**Pomembno za nadaljnji razvoj:** `npm run dev` ima v tem projektu opazno večjo latenco na PRVI obisk vsake strani/poti po zagonu strežnika (on-demand kompajliranje, izmerjeno tudi ~6s) - to NI počasna koda. Za testiranje občutene hitrosti vedno uporabi `npm run build && npm start` (glej README, razdelek "npm run dev proti npm run build && npm start").
 
 **Windows razvojna opomba:** `npm run dev` na Windows ne umre vedno zanesljivo ob prekinitvi - če se zdi, da spremembe "ne delujejo", preveri `netstat -ano | findstr LISTENING` na portu 3000 in po potrebi `taskkill /F /PID <pid>` pred ponovnim zagonom.
 
@@ -49,6 +53,9 @@ Te odločitve so bile sprejete izrecno z naročnikom - če se komu zdijo "nenava
 - **Odpovedani/zavrnjeni termini (`ODPOVEDAN`) se ne štejejo/prikazujejo kot zasedenost** v tedenskem/mesečnem admin pogledu (a so vidni v dnevnem pogledu s polnim statusom) in samodejno sprostijo termin za novo rezervacijo.
 - **Registrska številka vozila je na `Terminu`, ne na `Stranki`** - stranka ima lahko več vozil. Prikaže se na javnem obrazcu samo za dejavnost `AVTOSERVIS`.
 - **Zemljevid izbire poslovalnice uporablja Leaflet + OpenStreetMap, NE Google Maps** - naročnikova izrecna odločitev, da se izogne Google Cloud računu/API ključu. Koordinate lokacij se vnašajo ROČNO v adminu (ni geokodiranja iz naslova).
+- **Fizična delovna mesta (`DelovnoMesto`) so PRIMARNI pogoj zasedenosti, PER-STORITEV** - vsako delovno mesto (rampa/stol) ima svoj nabor storitev, ki jih zna izvesti; eno mesto streže en termin naenkrat, ne glede na izvajalca. Lokacija BREZ definiranih mest ostane brez te omejitve (samo po zaposlenih - obstoječe/privzeto obnašanje). Glej README, razdelek o delovnih mestih, za natančen primer in razlog dodelitve "najbolj ekskluzivnemu" mestu.
+- **Zastavice pri izbiri klicne kode telefona uporabljajo paket `flag-icons` (SVG), NE Unicode emoji** - Windows privzeto ne izriše regional-indicator emoji kot zastavice (pokaže dve črki), kar je bilo dejansko opaženo pri naročnikovem testiranju - ne vračaj na emoji pristop.
+- **Prijava v `/admin` ima DVA vira**: "korenski" admin iz `.env` (`ADMIN_EMAIL`/`PASSWORD`, geslo v čistem besedilu - namerna MVP poenostavitev) IN dodatni admini v tabeli `AdminUporabnik` (gesla hashirana z bcrypt, dodajajo se prek `/admin/nastavitve`). Middleware preverja SAMO podpisan piškotek (Edge runtime, brez dostopa do baze) - ne poskušaj dodati poizvedbe v bazo v `middleware.ts`, ne bo delovalo (Prisma/SQLite ne delujeta v Edge runtimu).
 
 ## 5. Vzorci in pasti, ki jih velja poznati pred nadaljnjim razvojem
 
@@ -59,7 +66,7 @@ Te odločitve so bile sprejete izrecno z naročnikom - če se komu zdijo "nenava
 
 ## 6. Kaj (namerno) manjka pred produkcijo
 
-- **Ni prave avtentikacije na `/admin`** - kdorkoli pozna URL, ima poln dostop. To je največja prioriteta pred produkcijo (npr. NextAuth).
+- **Prijava v `/admin` je ENOSTAVNA, ne "prava" v smislu produkcijskega uporabniškega sistema** - deluje (glej razdelek 4), a brez vlog/pravic, brez omejevanja poskusov prijave (rate limiting), gesla korenskega admina v čistem besedilu v `.env`. Za pravo produkcijsko rabo (ne samo test) je vredno dodati vsaj rate limiting na `/prijava`.
 - `npm audit` javlja 1 kritično + 1 visoko ranljivost, obe v `next@14.2.5` samem (ne v dodanih paketih) - popravek zahteva nadgradnjo na `next@14.2.35+`.
 - E-poštna/SMS obvestila, spletno plačevanje, poročila/analitika, vloge in pravice (izvajalec vidi samo svoj urnik) - vse eksplicitno v Fazi 2/3 specifikacije, ni bilo del MVP obsega.
 - Mapiranje lokacij na TRONxERP `BUStoreID`/`BUnitID` je trenutno ENA vrednost prek `.env`, ne po posamezni lokaciji (relevantno šele pri več fizičnih poslovalnicah, ki dejansko ustrezajo različnim TRONxERP poslovnim enotam).
@@ -77,7 +84,7 @@ Za testiranje žive integracije je naročnik uporabljal interno testno okolje TR
 ## 9. Priporočeni naslednji koraki
 
 1. Code review celotne kodne baze (noben človeški programer je še ni pregledal).
-2. Prava avtentikacija na `/admin`.
-3. `npm audit fix` / nadgradnja Next.js.
-4. Dogovor z naročnikom o produkcijski bazi (PostgreSQL) in gostovanju.
+2. `npm audit fix` / nadgradnja Next.js.
+3. Gostovanje - glej `PRIPRAVA-ZA-GOSTOVANJE.md` za pripravljen korak-za-korakom postopek (Vercel + PostgreSQL) in varnostni checklist pred javno objavo.
+4. Rate limiting na `/prijava`, po možnosti nadgradnja admin uporabniškega sistema (vloge/pravice - Faza 2/3).
 5. Če se integracija z TRONxERP nadaljuje: pridobiti prave TronOfficeAPI poverilnice in preveriti razdelek 7 zgoraj.
