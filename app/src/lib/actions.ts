@@ -169,6 +169,18 @@ export async function ustvariUrnik(formData: FormData) {
     casRezervacijOd: String(formData.get("casRezervacijOd")),
     casRezervacijDo: String(formData.get("casRezervacijDo")),
   };
+  // Čas za rezervacije je tisti, ki dejansko šteje za razpoložljivost
+  // terminov (glej dostopnost.ts) - MORA biti znotraj delovnega časa, sicer
+  // bi bil zaposleni "na voljo" v urah, ko sploh ne dela (npr. delovni čas
+  // 8-12, a rezervacije do 15.30 - najdeno pri naročnikovem testiranju).
+  // Obrazec (UrnikObrazec.tsx) to preprečuje že na klientu, tu je varovalka.
+  if (
+    podatki.casRezervacijOd < podatki.delovniCasOd ||
+    podatki.casRezervacijDo > podatki.delovniCasDo ||
+    podatki.casRezervacijOd >= podatki.casRezervacijDo
+  ) {
+    throw new Error("Čas za rezervacije mora biti znotraj delovnega časa (in 'od' pred 'do').");
+  }
   // Za isto kombinacijo zaposleni+lokacija+dan urnik PREPIŠE obstoječega
   // (upsert), namesto da bi ustvaril podvojen zapis za isti dan.
   await prisma.urnik.upsert({

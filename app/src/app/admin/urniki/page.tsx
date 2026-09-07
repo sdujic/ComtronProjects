@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ustvariUrnik, izbrisiUrnik } from "@/lib/actions";
+import { izbrisiUrnik } from "@/lib/actions";
+import { UrnikObrazec } from "@/components/UrnikObrazec";
 
 // Stran združuje zaposlene IN lokacije (za spustna seznama v obrazcu), a
 // akcije, ki ju ustvarjajo (ustvariZaposlenega, ustvariLokacijo ...) osvežijo
@@ -73,64 +74,7 @@ export default async function UrnikiStran() {
         {zaposleni.length === 0 && <p className="text-slate-500">Najprej dodaj zaposlenega.</p>}
       </div>
 
-      <form action={ustvariUrnik} className="card space-y-3">
-        <h2 className="font-medium">Dodaj urnik</h2>
-        <div>
-          <label className="label">Zaposleni *</label>
-          <select name="zaposleniId" required className="input">
-            {zaposleni.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.ime} {z.priimek}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Lokacija *</label>
-          <select name="lokacijaId" required className="input">
-            {lokacije.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.naziv}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Dan *</label>
-          <select name="dan" required className="input">
-            {DNEVI.map((d) => (
-              <option key={d.vrednost} value={d.vrednost}>
-                {d.naziv}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Delovni čas od *</label>
-            <input type="time" name="delovniCasOd" required defaultValue="08:00" className="input" />
-          </div>
-          <div>
-            <label className="label">Delovni čas do *</label>
-            <input type="time" name="delovniCasDo" required defaultValue="16:00" className="input" />
-          </div>
-          <div>
-            <label className="label">Čas za rezervacije od *</label>
-            <input type="time" name="casRezervacijOd" required defaultValue="08:00" className="input" />
-          </div>
-          <div>
-            <label className="label">Čas za rezervacije do *</label>
-            <input type="time" name="casRezervacijDo" required defaultValue="15:30" className="input" />
-          </div>
-        </div>
-        <p className="text-xs text-slate-500">
-          "Delovni čas" je informativen; za dejansko razpoložljivost terminov šteje "čas za rezervacije" (lahko je
-          ožji, npr. če si zaposleni zadnjih 30 min pusti za administrativno delo).
-        </p>
-        <button type="submit" className="btn">
-          Dodaj urnik
-        </button>
-      </form>
+      <UrnikObrazec zaposleni={zaposleni} lokacije={lokacije} />
     </div>
   );
 }

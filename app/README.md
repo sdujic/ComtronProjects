@@ -169,6 +169,15 @@ Prej je javni obrazec vprašal "kdo naj izvede storitev" PRED izbiro termina, ka
 - `next dev` je v tej seji enkrat nezanesljivo razrešil lastne (ne-privzete) Tailwind barve znotraj `@apply` v `globals.css` (deloval je `next build`, `next dev` je vrgel 500 "class does not exist"), zato so TRONxERP barve v `globals.css` zapisane kot navadne CSS spremenljivke, ne prek `@apply`. Če se podobna napaka pojavi spet, se ji izogni na enak način.
 - `TaskStop`/Ctrl+C na `npm run dev` na tem Windows okolju ne ubije zanesljivo pripadajočega `node.exe` procesa - lahko ostane osamljen proces, ki še vedno posluša na vratih (Next nato samodejno preklopi na naslednja prosta vrata, npr. 3001/3002/3003). Če se zdi, da spremembe "ne učinkujejo", preveri `netstat -ano | grep LISTENING` za več procesov na več vratih in po potrebi ročno `taskkill //F //PID <pid>`.
 
+### Popravljen hrošč: čas za rezervacije je lahko presegel delovni čas (npr. delo 8-12, rezervacije do 15.30)
+`delovniCas*` in `casRezervacij*` na `Urnik` sta bila DVA neodvisna vnosna polja z ločenimi, TRDO KODIRANIMI privzetimi vrednostmi (delo 08:00-16:00, rezervacije 08:00-15:30) - če je admin spremenil samo delovni čas (npr. skrajšal na 08:00-12:00 za novega zaposlenega s krajšim urnikom), je "čas za rezervacije" ostal pri stari privzeti vrednosti (15:30), ki je zdaj presegala nov, krajši delovni čas - sistem je zato termine ponujal do 15:30, čeprav zaposleni dela samo do 12:00 (najdeno pri Jožetu Novaku).
+
+Popravljeno v `src/components/UrnikObrazec.tsx` (obrazec spremenjen v client komponento):
+- Ob spremembi delovnega časa se "čas za rezervacije" SAMODEJNO uskladi (do-ura z običajnim 30-min zamikom pred koncem) - admin ga lahko po tem še vedno ročno zoži.
+- Gumb "Dodaj urnik" je `disabled`, dokler ni `casRezervacijOd >= delovniCasOd && casRezervacijDo <= delovniCasDo && casRezervacijOd < casRezervacijDo`.
+- `ustvariUrnik` (actions.ts) isto pravilo preveri tudi na strežniku (vrže napako) - varovalka, če bi kdo obšel klientsko validacijo.
+- Obstoječi neveljaven zapis (Jože Novak, ponedeljek) ročno popravljen na 08:00-11:30 (delo do 12:00, 30-min zamik - konsistentno z ostalimi urniki v bazi).
+
 ### Popravljen hrošč: termin brez izvajalca je bil neviden za preverjanje zasedenosti (dvostopenjski popravek)
 Ko je bil termin ustvarjen brez konkretnega `zaposleniId` (admin izbere "-- samodejno --", ali neposreden API klic brez izbire izvajalca), ga preverjanje zasedenosti ni zaznalo NIKOMUR, ker `pregledDneva` išče prekrivanje po `zaposleniId` posameznega izvajalca - termin brez njega ni bil primerjan z ničimer. Posledica: tak termin se je na javnem obrazcu spet prikazal kot prost.
 
