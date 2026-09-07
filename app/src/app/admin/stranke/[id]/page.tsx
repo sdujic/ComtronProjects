@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { dodajZapisekStranki } from "@/lib/actions";
 import { notFound } from "next/navigation";
+import { StrankaGlava } from "@/components/StrankaGlava";
 
 const STATUS_OZNAKE: Record<string, string> = {
   V_POTRJEVANJU: "V potrjevanju",
@@ -35,17 +36,7 @@ export default async function KarticaStranke({ params }: { params: { id: string 
 
   return (
     <div className="max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold">
-          {stranka.ime} {stranka.priimek}
-        </h1>
-        <p className="text-sm text-slate-500">
-          {stranka.telefon} {stranka.email && `· ${stranka.email}`}
-        </p>
-        {stranka.ercPartnerId && (
-          <p className="text-sm text-slate-400">TRONxERP partner ID: {stranka.ercPartnerId}</p>
-        )}
-      </div>
+      <StrankaGlava key={stranka.updatedAt.getTime()} stranka={stranka} />
 
       <section>
         <h2 className="mb-2 font-medium">Termini</h2>

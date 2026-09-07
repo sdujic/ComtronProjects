@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { izbrisiUrnik } from "@/lib/actions";
 import { UrnikObrazec } from "@/components/UrnikObrazec";
+import { UrnikVrstica } from "@/components/UrnikVrstica";
 
 // Stran združuje zaposlene IN lokacije (za spustna seznama v obrazcu), a
 // akcije, ki ju ustvarjajo (ustvariZaposlenega, ustvariLokacijo ...) osvežijo
@@ -8,16 +8,6 @@ import { UrnikObrazec } from "@/components/UrnikObrazec";
 // brez tega bi stran ostala statično predpomnjena z zastarelim seznamom
 // (npr. na novo dodan zaposleni se ne bi pojavil v spustnem seznamu).
 export const dynamic = "force-dynamic";
-
-const DNEVI = [
-  { vrednost: 1, naziv: "Ponedeljek" },
-  { vrednost: 2, naziv: "Torek" },
-  { vrednost: 3, naziv: "Sreda" },
-  { vrednost: 4, naziv: "Četrtek" },
-  { vrednost: 5, naziv: "Petek" },
-  { vrednost: 6, naziv: "Sobota" },
-  { vrednost: 7, naziv: "Nedelja" },
-];
 
 export default async function UrnikiStran() {
   const [urniki, zaposleni, lokacije] = await Promise.all([
@@ -52,19 +42,7 @@ export default async function UrnikiStran() {
               ) : (
                 <div className="space-y-1.5">
                   {urnikiZaposlenega.map((u) => (
-                    <div key={u.id} className="flex items-center justify-between text-sm">
-                      <div>
-                        <span className="font-medium">{DNEVI.find((d) => d.vrednost === u.dan)?.naziv}</span>
-                        <span className="text-slate-500">
-                          {" "}
-                          · {u.lokacija.naziv} · delo {u.delovniCasOd}-{u.delovniCasDo} · rezervacije{" "}
-                          {u.casRezervacijOd}-{u.casRezervacijDo}
-                        </span>
-                      </div>
-                      <form action={izbrisiUrnik.bind(null, u.id)}>
-                        <button className="text-xs text-red-600 hover:underline">Izbriši</button>
-                      </form>
-                    </div>
+                    <UrnikVrstica key={`${u.id}-${u.updatedAt.getTime()}`} urnik={u} />
                   ))}
                 </div>
               )}

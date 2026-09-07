@@ -75,6 +75,33 @@ export async function ustvariLokacijo(formData: FormData) {
   revalidatePath("/admin/lokacije");
 }
 
+export async function posodobiStranko(id: string, formData: FormData) {
+  await prisma.stranka.update({
+    where: { id },
+    data: {
+      ime: String(formData.get("ime")),
+      priimek: String(formData.get("priimek")),
+      email: String(formData.get("email") || "") || null,
+      telefon: String(formData.get("telefon")),
+    },
+  });
+  revalidatePath(`/admin/stranke/${id}`);
+  revalidatePath("/admin/stranke");
+}
+
+export async function posodobiOsnovnePodatkeLokacije(id: string, formData: FormData) {
+  await prisma.lokacija.update({
+    where: { id },
+    data: {
+      naziv: String(formData.get("naziv")),
+      naslov: String(formData.get("naslov") || "") || null,
+      delovniCas: String(formData.get("delovniCas") || "") || null,
+      drzava: String(formData.get("drzava") || "SI"),
+    },
+  });
+  revalidatePath("/admin/lokacije");
+}
+
 // Koordinate se vnašajo ročno (kopirano iz Google Maps/OpenStreetMap - desni
 // klik na lokacijo -> koordinate v oklepaju) - ni samodejnega geokodiranja
 // iz naslova, glej opombo pri Lokacija.lat v schema.prisma. Fizična delovna
@@ -134,6 +161,27 @@ export async function ustvariStoritev(formData: FormData) {
   } catch (e) {
     console.error("[TRONxERP] sinhronizacija storitve ni uspela", e);
   }
+  revalidatePath("/admin/storitve");
+}
+
+// Ne sinhronizira ponovno v TRONxERP (`saveArticle` se kliče samo ob
+// ustvarjanju, glej ustvariStoritev) - namerna poenostavitev, dokumentirana
+// v README, ni bila del te zahteve (samo lokalno urejanje polj).
+export async function posodobiStoritev(id: string, formData: FormData) {
+  const trajanjeMin = Math.max(1, Math.round(Number(formData.get("trajanjeMin")) || 0));
+  const cena = Math.max(0, Number(formData.get("cena")) || 0);
+  await prisma.storitev.update({
+    where: { id },
+    data: {
+      naziv: String(formData.get("naziv")),
+      opis: String(formData.get("opis") || "") || null,
+      trajanjeMin,
+      cena,
+      kategorijaId: String(formData.get("kategorijaId") || "") || null,
+      ercSifraArtikla: String(formData.get("ercSifraArtikla") || "") || null,
+      vidnaNaSpletu: formData.get("vidnaNaSpletu") === "on",
+    },
+  });
   revalidatePath("/admin/storitve");
 }
 

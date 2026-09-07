@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ustvariUrnik } from "@/lib/actions";
+import { odsteviMinut } from "@/lib/cas";
 
 type Zaposleni = { id: string; ime: string; priimek: string };
 type Lokacija = { id: string; naziv: string };
@@ -15,12 +16,6 @@ const DNEVI = [
   { vrednost: 6, naziv: "Sobota" },
   { vrednost: 7, naziv: "Nedelja" },
 ];
-
-function odsteviMinut(cas: string, minut: number): string {
-  const [h, m] = cas.split(":").map(Number);
-  const skupajMin = Math.max(0, h * 60 + m - minut);
-  return `${String(Math.floor(skupajMin / 60)).padStart(2, "0")}:${String(skupajMin % 60).padStart(2, "0")}`;
-}
 
 export function UrnikObrazec({ zaposleni, lokacije }: { zaposleni: Zaposleni[]; lokacije: Lokacija[] }) {
   const [delovniCasOd, setDelovniCasOd] = useState("08:00");

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ustvariStoritev, izbrisiStoritev } from "@/lib/actions";
+import { ustvariStoritev } from "@/lib/actions";
+import { StoritevVrstica } from "@/components/StoritevVrstica";
 
 export default async function StoritveStran() {
   const [storitve, kategorije] = await Promise.all([
@@ -16,18 +17,7 @@ export default async function StoritveStran() {
 
       <div className="space-y-3">
         {storitve.map((s) => (
-          <div key={s.id} className="card flex items-center justify-between">
-            <div>
-              <div className="font-medium">{s.naziv}</div>
-              <div className="text-sm text-slate-500">
-                {s.kategorija?.naziv} · {s.trajanjeMin} min · {s.cena.toFixed(2)} €
-                {s.ercSifraArtikla && ` · ERP šifra: ${s.ercSifraArtikla}`}
-              </div>
-            </div>
-            <form action={izbrisiStoritev.bind(null, s.id)}>
-              <button className="text-sm text-red-600 hover:underline">Izbriši</button>
-            </form>
-          </div>
+          <StoritevVrstica key={`${s.id}-${s.updatedAt.getTime()}`} storitev={s} kategorije={kategorije} />
         ))}
       </div>
 
