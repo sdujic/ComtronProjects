@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ustvariZaposlenega, izbrisiZaposlenega } from "@/lib/actions";
+import { ustvariZaposlenega } from "@/lib/actions";
+import { ZaposleniVrstica } from "@/components/ZaposleniVrstica";
 
 export default async function ZaposleniStran() {
   const [zaposleni, lokacije, storitve] = await Promise.all([
@@ -17,25 +18,9 @@ export default async function ZaposleniStran() {
 
       <div className="space-y-3">
         {zaposleni.map((z) => (
-          <div key={z.id} className="card flex items-center justify-between">
-            <div>
-              <div className="font-medium">
-                {z.ime} {z.priimek}
-              </div>
-              <div className="text-sm text-slate-500">
-                {z.email} {z.telefon && `· ${z.telefon}`}
-              </div>
-              <div className="text-sm text-slate-500">
-                Lokacije: {z.lokacije.map((l) => l.lokacija.naziv).join(", ") || "—"}
-              </div>
-              <div className="text-sm text-slate-500">
-                Storitve: {z.storitve.map((s) => s.storitev.naziv).join(", ") || "—"}
-              </div>
-            </div>
-            <form action={izbrisiZaposlenega.bind(null, z.id)}>
-              <button className="text-sm text-red-600 hover:underline">Izbriši</button>
-            </form>
-          </div>
+          // key vključuje updatedAt, da se po uspešnem shranjevanju komponenta
+          // ponovno "namontira" in se sama vrne v prikazni (ne urejevalni) način.
+          <ZaposleniVrstica key={`${z.id}-${z.updatedAt.getTime()}`} zaposleni={z} lokacije={lokacije} storitve={storitve} />
         ))}
       </div>
 

@@ -159,6 +159,32 @@ export async function ustvariZaposlenega(formData: FormData) {
   revalidatePath("/admin/zaposleni");
 }
 
+export async function posodobiZaposlenega(id: string, formData: FormData) {
+  const lokacijaId = String(formData.get("lokacijaId") || "");
+  const storitveIds = formData.getAll("storitveIds").map(String);
+
+  await prisma.$transaction([
+    prisma.zaposleni.update({
+      where: { id },
+      data: {
+        ime: String(formData.get("ime")),
+        priimek: String(formData.get("priimek")),
+        email: String(formData.get("email") || "") || null,
+        telefon: String(formData.get("telefon") || "") || null,
+      },
+    }),
+    prisma.zaposleniLokacija.deleteMany({ where: { zaposleniId: id } }),
+    prisma.zaposleniLokacija.createMany({
+      data: lokacijaId ? [{ zaposleniId: id, lokacijaId }] : [],
+    }),
+    prisma.zaposleniStoritev.deleteMany({ where: { zaposleniId: id } }),
+    prisma.zaposleniStoritev.createMany({
+      data: storitveIds.map((storitevId) => ({ zaposleniId: id, storitevId })),
+    }),
+  ]);
+  revalidatePath("/admin/zaposleni");
+}
+
 export async function ustvariUrnik(formData: FormData) {
   const zaposleniId = String(formData.get("zaposleniId"));
   const lokacijaId = String(formData.get("lokacijaId"));
