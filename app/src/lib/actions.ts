@@ -160,16 +160,21 @@ export async function ustvariZaposlenega(formData: FormData) {
 }
 
 export async function ustvariUrnik(formData: FormData) {
-  await prisma.urnik.create({
-    data: {
-      zaposleniId: String(formData.get("zaposleniId")),
-      lokacijaId: String(formData.get("lokacijaId")),
-      dan: Number(formData.get("dan")),
-      delovniCasOd: String(formData.get("delovniCasOd")),
-      delovniCasDo: String(formData.get("delovniCasDo")),
-      casRezervacijOd: String(formData.get("casRezervacijOd")),
-      casRezervacijDo: String(formData.get("casRezervacijDo")),
-    },
+  const zaposleniId = String(formData.get("zaposleniId"));
+  const lokacijaId = String(formData.get("lokacijaId"));
+  const dan = Number(formData.get("dan"));
+  const podatki = {
+    delovniCasOd: String(formData.get("delovniCasOd")),
+    delovniCasDo: String(formData.get("delovniCasDo")),
+    casRezervacijOd: String(formData.get("casRezervacijOd")),
+    casRezervacijDo: String(formData.get("casRezervacijDo")),
+  };
+  // Za isto kombinacijo zaposleni+lokacija+dan urnik PREPIŠE obstoječega
+  // (upsert), namesto da bi ustvaril podvojen zapis za isti dan.
+  await prisma.urnik.upsert({
+    where: { zaposleniId_lokacijaId_dan: { zaposleniId, lokacijaId, dan } },
+    update: podatki,
+    create: { zaposleniId, lokacijaId, dan, ...podatki },
   });
   revalidatePath("/admin/urniki");
 }

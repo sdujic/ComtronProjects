@@ -194,6 +194,7 @@ model Urnik {
   zaposleni Zaposleni @relation(fields: [zaposleniId], references: [id], onDelete: Cascade)
   lokacija  Lokacija  @relation(fields: [lokacijaId], references: [id], onDelete: Cascade)
 
+  @@unique([zaposleniId, lokacijaId, dan])
   @@index([zaposleniId])
   @@index([lokacijaId])
 }

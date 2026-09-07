@@ -180,6 +180,12 @@ Ko je bil termin ustvarjen brez konkretnega `zaposleniId` (admin izbere "-- samo
 
 Popravljeno z `export const dynamic = "force-dynamic";` na vrhu `src/app/admin/urniki/page.tsx` - stran zdaj vedno bere sveže podatke, namesto da bi se zanašala na to, da vsaka akcija, ki ustvari zaposlenega/lokacijo, pozna in osveži TO stran. **Nauk za nadaljnji razvoj: katerakoli admin stran, ki prikazuje/ureja podatke IZ VEČ kot ene lastne entitete (tu: urniki potrebuje sveže zaposlene IN lokacije), je tvegana za to vrsto tihega zastarelega predpomnjenja - bodisi dosledno dodaj `revalidatePath` za to stran v VSE akcije, ki vplivajo nanjo, bodisi (enostavneje in bolj zanesljivo) označi stran kot `force-dynamic`.**
 
+### Popravljen hrošč: dodajanje urnika za isti dan je USTVARILO podvojen zapis namesto da bi ga prepisalo
+"Dodaj urnik" na `/admin/urniki` je vedno klical `prisma.urnik.create()` - če je zaposleni na isti lokaciji za isti dan že imel urnik, je nov vnos samo DODAL drugega poleg obstoječega (naročnik je to opazil pri Marku Novaku: dva urnika za ponedeljek z različnimi urami), namesto da bi obstoječega prepisal z novimi urami. Popravljeno:
+- V shemi dodan `@@unique([zaposleniId, lokacijaId, dan])` na `Urnik` (baza zdaj sama prepreči podvojitev za isto kombinacijo).
+- `ustvariUrnik` (actions.ts) spremenjen iz `create` v `upsert` na tem istem ključu - za obstoječo kombinacijo zaposleni+lokacija+dan urnik PREPIŠE ure, za novo kombinacijo (drug dan, DRUGA lokacija istega zaposlenega - npr. dopoldne v eni poslovalnici, popoldne v drugi) ustvari nov zapis, kot doslej.
+- Obstoječi podvojen zapis (Marko Novak, ponedeljek) je bil ročno počiščen (obdržane najnovejše, dejansko nazadnje vnesene ure) pred uveljavitvijo omejitve.
+
 ### Past pri pretvorbi Date -> "YYYY-MM-DD" (pomembno za nadaljnji razvoj)
 NIKOLI ne uporabljaj `datum.toISOString().slice(0, 10)` za prikaz/grupiranje po LOKALNEM koledarskem dnevu - `toISOString()` pretvarja v UTC, kar pri časovnih pasovih pred UTC (npr. Europe/Ljubljana, poleti UTC+2) povzroči, da lokalna polnoč "pade" na prejšnji dan (npr. 1.9. ob 00:00 CEST postane "2026-08-31"). To je povzročilo pravi, konkretno najden bug v mesečnem/tedenskem pogledu (prvi dan meseca se je prikazal kot zadnji dan prejšnjega). Uporabi `lokalniDatumString()` iz `src/lib/datum.ts` povsod, kjer pretvarjaš Date v datumski niz.
 
