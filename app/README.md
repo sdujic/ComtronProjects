@@ -2,7 +2,7 @@
 
 MVP ogrodje rezervacijske aplikacije, zgrajeno po `../Specifikacija-in-arhitektura.md`.
 
-**Uporabniška navodila** (za stranke IN za osebje, z zaslonskimi posnetki): odpri `../Navodila-NarocanjeNaTermin.html` v brskalniku. **Priprava za javno objavo/gostovanje**: `../PRIPRAVA-ZA-GOSTOVANJE.md`. **Predaja/orientacija za programerja**: `../PREDAJA-PROGRAMERJU.md`.
+**Uporabniška navodila** (za stranke IN za osebje, z zaslonskimi posnetki): odpri `../Navodila-NarocanjeNaTermin.html` v brskalniku, ALI klikni »Navodila za uporabo« na dnu admin stranske navigacije (`AdminNav.tsx`) - stran je kopirana tudi v `public/` (glej spodaj), da je dosegljiva neposredno iz delujoče aplikacije na `/Navodila-NarocanjeNaTermin.html`. **Priprava za javno objavo/gostovanje**: `../PRIPRAVA-ZA-GOSTOVANJE.md`. **Predaja/orientacija za programerja**: `../PREDAJA-PROGRAMERJU.md`.
 
 ## Zagon (razvojno okolje)
 

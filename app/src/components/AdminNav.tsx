@@ -11,6 +11,7 @@ import {
   IkonaUrnik,
   IkonaZgodovina,
   IkonaNastavitve,
+  IkonaNavodila,
 } from "@/components/icons";
 
 const POVEZAVE = [
@@ -44,6 +45,15 @@ export function AdminNav() {
           </Link>
         );
       })}
+      <a
+        href="/Navodila-NarocanjeNaTermin.html"
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 flex items-center gap-3 rounded-lg border-t border-slate-100 px-3 pb-1 pt-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        <IkonaNavodila className="h-5 w-5 text-slate-400" />
+        Navodila za uporabo
+      </a>
     </nav>
   );
 }

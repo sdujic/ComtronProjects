@@ -94,6 +94,16 @@ export function IkonaZvonec({ className }: IkonaProps) {
   );
 }
 
+export function IkonaNavodila({ className }: IkonaProps) {
+  return (
+    <svg {...osnovniAtributi} className={className}>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5V5.5Z" />
+      <path d="M4 5.5v15" />
+      <path d="M8 8h8M8 11h5" />
+    </svg>
+  );
+}
+
 export function IkonaNastavitve({ className }: IkonaProps) {
   return (
     <svg {...osnovniAtributi} className={className}>
