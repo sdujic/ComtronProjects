@@ -73,6 +73,7 @@ export async function ustvariLokacijo(formData: FormData) {
     },
   });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 export async function posodobiStranko(id: string, formData: FormData) {
@@ -100,6 +101,7 @@ export async function posodobiOsnovnePodatkeLokacije(id: string, formData: FormD
     },
   });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 // Koordinate se vnašajo ročno (kopirano iz Google Maps/OpenStreetMap - desni
@@ -116,6 +118,7 @@ export async function posodobiNastavitveLokacije(id: string, formData: FormData)
     },
   });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 // updateMany namesto update - če je zapis medtem že izbrisan/spremenjen na
@@ -125,6 +128,7 @@ export async function posodobiNastavitveLokacije(id: string, formData: FormData)
 export async function izbrisiLokacijo(id: string) {
   await prisma.lokacija.updateMany({ where: { id }, data: { aktivna: false } });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 export async function preklopiDanLokacije(
@@ -134,6 +138,7 @@ export async function preklopiDanLokacije(
 ) {
   await prisma.lokacija.update({ where: { id }, data: { [polje]: !trenutnaVrednost } });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 export async function ustvariKategorijoStoritve(naziv: string) {
@@ -305,6 +310,7 @@ export async function ustvariDelovnoMesto(lokacijaId: string, formData: FormData
     },
   });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 // Posodobi naziv IN cel nabor storitev za obstoječe delovno mesto (naziv
@@ -322,11 +328,13 @@ export async function posodobiDelovnoMesto(id: string, formData: FormData) {
     }),
   ]);
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 export async function izbrisiDelovnoMesto(id: string) {
   await prisma.delovnoMesto.updateMany({ where: { id }, data: { aktivno: false } });
   revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
 }
 
 export async function dodajZapisekStranki(strankaId: string, formData: FormData) {
