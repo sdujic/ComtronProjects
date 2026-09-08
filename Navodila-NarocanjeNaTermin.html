@@ -137,8 +137,14 @@
     nav.toc{position:static}
   }
 
-  .panel{display:none}
-  .panel.active{display:block}
+  .partTitle{
+    background:linear-gradient(135deg,#004c87,#0066b3 55%,#1863dc);
+    color:#fff;border-radius:16px;padding:20px 26px;margin:0 0 24px;
+    font-size:20px;font-weight:800;display:flex;align-items:center;gap:12px;
+    scroll-margin-top:20px;
+  }
+  .partTitle .ic{font-size:23px}
+  .partTitle small{display:block;font-size:13.5px;font-weight:600;opacity:.85;margin-top:2px}
 
   /* Lightbox za povečan prikaz zaslonskih posnetkov */
   .lightbox{position:fixed;inset:0;background:rgba(10,14,20,.82);display:none;align-items:center;justify-content:center;
@@ -157,17 +163,17 @@
     <div class="metaRow">
       <span class="metaChip">🌐 Javni del: <code>/rezervacija</code></span>
       <span class="metaChip">🔐 Administracija: <code>/admin</code></span>
-      <span class="metaChip">📅 Pripravljeno: 07.09.2026</span>
+      <span class="metaChip">📅 Posodobljeno: 08.09.2026</span>
     </div>
   </div>
 </header>
 
 <div class="tabBar">
   <div class="tabButtons">
-    <button class="tabBtn active" data-tab="stranke" onclick="preklopi('stranke')">
+    <button class="tabBtn active" data-tab="stranke">
       <span class="ic">🧑‍🤝‍🧑</span> Za stranke — rezervacija termina
     </button>
-    <button class="tabBtn" data-tab="osebje" onclick="preklopi('osebje')">
+    <button class="tabBtn" data-tab="osebje">
       <span class="ic">🛠️</span> Za osebje — administracija
     </button>
   </div>
@@ -176,7 +182,8 @@
 <div class="wrap">
 
   <!-- ================= DEL 1: STRANKE / REZERVACIJA ================= -->
-  <div class="panel active" id="panel-stranke">
+  <div class="partTitle" id="panel-stranke"><span class="ic">🧑‍🤝‍🧑</span> <span>Del 1 · Za stranke — rezervacija termina<small>Javni obrazec, prek katerega se stranka sama naroči na termin.</small></span></div>
+  <div id="deo-stranke">
     <div class="layout">
       <nav class="toc">
         <p class="tocTitle">Vsebina</p>
@@ -325,7 +332,8 @@
   </div>
 
   <!-- ================= DEL 2: OSEBJE / ADMINISTRACIJA ================= -->
-  <div class="panel" id="panel-osebje">
+  <div class="partTitle" id="panel-osebje"><span class="ic">🛠️</span> <span>Del 2 · Za osebje — administracija<small>Prijava, koledar, storitve, zaposleni, urniki, stranke, lokacije in nastavitve.</small></span></div>
+  <div id="deo-osebje">
     <div class="layout">
       <nav class="toc">
         <p class="tocTitle">Vsebina</p>
@@ -355,6 +363,10 @@
           <div class="callout tip">
             <div class="ctitle">✓ Odjava</div>
             Gumb z ikono uporabnika zgoraj desno v adminu vas odjavi.
+          </div>
+          <div class="callout tip">
+            <div class="ctitle">✓ Ta navodila so dosegljiva tudi iz aplikacije</div>
+            Na dnu stranske navigacije v administraciji je povezava <b>»Navodila za uporabo«</b>, ki to isto stran odpre v novem zavihku — ni vam treba iskati te datoteke posebej.
           </div>
           <figure class="shot">
             <img src="Navodila-slike/10-admin-prijava.png" alt="Prijava v administracijo">
@@ -428,9 +440,17 @@
             <li>Stikalo »Vidna na spletu« določa, ali se storitev sploh ponudi strankam na javnem obrazcu.</li>
             <li>Trajanje in cena ne moreta biti negativna — sistem to samodejno prepreči.</li>
           </ol>
+          <div class="callout tip">
+            <div class="ctitle">✓ Urejanje z dvoklikom</div>
+            Dvoklik na obstoječo storitev (ali gumb »Uredi«) odpre obrazec z vsemi njenimi podatki — spremenite karkoli in kliknite »Shrani«, ali »Prekliči«, če se premislite. Enak vzorec (dvoklik = urejanje) velja na VSEH seznamih v administraciji.
+          </div>
           <figure class="shot">
             <img src="Navodila-slike/15-admin-storitve.png" alt="Storitve">
             <figcaption>Seznam in obrazec za dodajanje storitve.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="Navodila-slike/24-admin-storitve-urejanje.png" alt="Urejanje storitve">
+            <figcaption>Dvoklik na storitev odpre urejevalni obrazec z vsemi podatki.</figcaption>
           </figure>
         </section>
 
@@ -441,9 +461,17 @@
             <li>Vsakemu zaposlenemu dodelite eno ali več lokacij ter eno ali več storitev, ki jih izvaja.</li>
             <li>Ali je zaposleni za določen termin dejansko na voljo, je odvisno tudi od urnika (glej naslednji razdelek).</li>
           </ol>
+          <div class="callout tip">
+            <div class="ctitle">✓ Urejanje z dvoklikom</div>
+            Dvoklik na zaposlenega (ali gumb »Uredi«) odpre obrazec za urejanje imena, priimka, e-pošte, telefona, lokacije in storitev — »Shrani« ali »Prekliči«.
+          </div>
           <figure class="shot">
             <img src="Navodila-slike/16-admin-zaposleni.png" alt="Zaposleni">
             <figcaption>Seznam zaposlenih.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="Navodila-slike/23-admin-zaposleni-urejanje.png" alt="Urejanje zaposlenega">
+            <figcaption>Dvoklik na zaposlenega odpre urejevalni obrazec z vsemi podatki.</figcaption>
           </figure>
         </section>
 
@@ -454,9 +482,19 @@
             <div class="ctitle">⚠ Pogosta past</div>
             Zaposleni je za rezervacije na voljo SAMO na dneve, za katere ima tu vnesen urnik — manjkajoč dan (npr. sobota) pomeni, da tisti dan ni ponujenih terminov, tudi če je lokacija sicer označena kot »odprta ob sobotah«.
           </div>
+          <ol class="steps">
+            <li>»Delovni čas« je informativen; za dejansko razpoložljivost terminov šteje »čas za rezervacije« — lahko je ožji (npr. če si zaposleni zadnjih 30 min pusti za administrativno delo), a MORA biti znotraj delovnega časa.</li>
+            <li>Ob spremembi delovnega časa se čas za rezervacije samodejno uskladi (s privzetim 30-minutnim zamikom pred koncem) — po potrebi ga lahko ročno dodatno zožite. Gumb za shranjevanje je onemogočen, dokler čas za rezervacije sega izven delovnega časa.</li>
+            <li>Dodajanje urnika za zaposlenega, ki na ta dan in tej lokaciji že ima urnik, obstoječega PREPIŠE (ne podvoji).</li>
+            <li>Dvoklik na obstoječo vrstico urnika odpre urejanje njenih ur, brez potrebe po ponovnem izbiranju zaposlenega/lokacije/dneva v spodnjem obrazcu.</li>
+          </ol>
           <figure class="shot">
             <img src="Navodila-slike/17-admin-urniki.png" alt="Urniki">
             <figcaption>Urniki po zaposlenem, lokaciji in dnevu.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="Navodila-slike/26-admin-urniki-urejanje.png" alt="Urejanje urnika">
+            <figcaption>Dvoklik na vrstico urnika odpre urejanje njenih ur (z isto zaščito kot pri dodajanju).</figcaption>
           </figure>
         </section>
 
@@ -466,6 +504,7 @@
           <ol class="steps">
             <li>Na seznamu strank kliknite posamezno stranko za njeno kartico — zgodovina vseh terminov + prosti zapiski o stranki.</li>
             <li>Na strani <b>»Zgodovina servisov«</b> lahko iščete po imenu, priimku, telefonski številki stranke ALI po registrski številki vozila — uporabno, kadar isto vozilo pripelje druga oseba.</li>
+            <li>Dvoklik na ime stranke na vrhu njene kartice odpre urejanje imena, priimka, telefona in e-pošte — uporabno za popravek tipkarske napake, ki je stranka morda naredila pri spletnem naročanju.</li>
           </ol>
           <div class="grid2">
             <figure class="shot">
@@ -477,6 +516,10 @@
               <figcaption>Iskanje po zgodovini servisov.</figcaption>
             </figure>
           </div>
+          <figure class="shot">
+            <img src="Navodila-slike/27-admin-stranka-urejanje.png" alt="Urejanje stranke">
+            <figcaption>Dvoklik na ime stranke odpre urejanje njenih kontaktnih podatkov.</figcaption>
+          </figure>
         </section>
 
         <section class="card" id="a-lokacije">
@@ -492,9 +535,17 @@
             <div class="ctitle">✓ Primer</div>
             Avtoservis ima 2 rampi: »Rampa 1« zna samo menjavo gum, »Rampa 2« zna menjavo gum IN redni servis. Brez rezervacij sta tako na voljo 2 mesti za menjavo gum, a samo 1 za redni servis. Če stranka rezervira redni servis, ta storitev za to uro ni več na voljo nikomur drugemu (edina ustrezna rampa je zasedena), medtem ko menjava gum ostane dosegljiva na drugi rampi.
           </div>
+          <div class="callout tip">
+            <div class="ctitle">✓ Urejanje z dvoklikom</div>
+            Dvoklik na naziv/naslov lokacije odpre urejanje osnovnih podatkov (naziv, naslov, delovni čas, država); dvoklik na posamezno delovno mesto odpre urejanje njegovega naziva in nabora storitev. Preklopna gumba »Sobota«/»Nedelja« in polje s koordinatami ostaneta vedno vidna, brez dvoklika.
+          </div>
           <figure class="shot">
             <img src="Navodila-slike/21-admin-lokacije.png" alt="Lokacije">
             <figcaption>Nastavitve lokacije, koordinate in delovna mesta.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="Navodila-slike/25-admin-lokacije-urejanje.png" alt="Urejanje lokacije">
+            <figcaption>Dvoklik na naziv/naslov lokacije odpre urejanje osnovnih podatkov.</figcaption>
           </figure>
         </section>
 
@@ -529,14 +580,15 @@
 </div>
 
 <script>
-  function preklopi(ime) {
-    document.querySelectorAll('.tabBtn').forEach(function (b) {
-      b.classList.toggle('active', b.dataset.tab === ime);
+  // Oba dela navodil sta VEDNO vidna (drug pod drugim) - gumba zgoraj samo
+  // hitro premakneta pogled na ustrezen del, ne skrivata drugega.
+  document.querySelectorAll('.tabBtn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tabBtn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      var cilj = document.getElementById('panel-' + btn.dataset.tab);
+      if (cilj) cilj.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-    document.getElementById('panel-stranke').classList.toggle('active', ime === 'stranke');
-    document.getElementById('panel-osebje').classList.toggle('active', ime === 'osebje');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  });
 
   document.querySelectorAll('figure.shot img').forEach(function (img) {
     img.addEventListener('click', function () {
