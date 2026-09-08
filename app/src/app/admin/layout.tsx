@@ -40,6 +40,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 {lokacija.naziv}
               </div>
             )}
+            <a
+              href="/rezervacija"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50"
+            >
+              Stran za naročanje (stranke) ↗
+            </a>
             <ObvestilaZvonec />
             <form action={odjavaAdmin}>
               <button
