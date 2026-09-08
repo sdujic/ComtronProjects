@@ -1,6 +1,6 @@
 # Priprava za gostovanje na spletu
 
-Ta dokument pove, kaj je **že pripravljeno** za javno objavo aplikacije, kaj je treba **obvezno urediti pred** tem, in **korak-za-korakom pot**, če se odločiš za najlažjo/priporočeno kombinacijo (Vercel + brezplačna PostgreSQL baza). Dejanske objave (ustvarjanje računov, potiskanje kode, klik na "Deploy") NISEM izvedel - za to je potreben tvoj račun na izbrani platformi, jaz sem pripravil vse, da je ta korak čim krajši, ko se odločiš.
+Ta dokument pove, kaj je **že pripravljeno** za javno objavo aplikacije, kaj je treba **obvezno urediti pred** tem, in **korak-za-korakom pot**, če se odločiš za najlažjo/priporočeno kombinacijo (Vercel ALI Netlify + brezplačna PostgreSQL baza - glej razdelka 4 in 5, postopek je skoraj identičen). Dejanske objave (ustvarjanje računov, potiskanje kode, klik na "Deploy") NISEM izvedel - za to je potreben tvoj račun na izbrani platformi, jaz sem pripravil vse, da je ta korak čim krajši, ko se odločiš.
 
 ## 1. Kaj je že pripravljeno
 
@@ -19,7 +19,7 @@ Trenutne testne vrednosti so namenjene SAMO lokalnemu testiranju - preden je apl
 |---|---|---|
 | `ADMIN_PASSWORD` | `123` | Nastavi pravo, močno geslo |
 | `ADMIN_SESSION_SECRET` | testni privzeti niz | Nastavi dolg naključen niz (npr. `openssl rand -hex 32`) |
-| Baza | SQLite (datoteka) | PostgreSQL (glej spodaj) - SQLite ne deluje zanesljivo na serverless gostovanju (Vercel) |
+| Baza | SQLite (datoteka) | PostgreSQL (glej spodaj) - SQLite ne deluje zanesljivo na serverless gostovanju (Vercel, Netlify) |
 | `NODE_ENV` | development/lokalno | Na produkcijskem gostovanju je to samodejno `production` - preveri, da je piškotek za prijavo takrat označen kot `secure` (že je, glej `src/lib/admin-auth-actions.ts`) |
 
 **Dodatno, vredno vedeti (ni nujno za kratek test, a bodi pošten do strank):**
@@ -77,10 +77,31 @@ Ta pot je najhitrejša za Next.js aplikacije in nima stroškov za manjši testni
 ### Korak 5 - Lastna domena (neobvezno)
 Če želiš npr. `narocanje.comtron.si` namesto `...vercel.app`, na Vercel projektu pod "Domains" dodaš domeno, nato pri Comtronovem DNS ponudniku dodaš CNAME zapis, kot ga Vercel navede - to zahteva dostop do DNS nastavitev za comtron.si.
 
-## 5. Če imate raje obstoječo Comtron infrastrukturo
+## 5. Alternativa: Netlify namesto Vercel
 
-Če želite aplikacijo gostiti na že obstoječem strežniku (VPS, Docker ipd.) namesto na Vercelu, mi povejte, kaj je na voljo (Linux/Windows strežnik, Docker, ali "gol" Node.js), pa pripravim natančnejša navodila zanj - splošno gledano aplikacija potrebuje: Node.js 18+, dostop do PostgreSQL baze, možnost nastavitve okoljskih spremenljivk in reverse proxy (nginx/Caddy) za HTTPS.
+Netlify prek uradnega "Next.js Runtime" vtičnika (`@netlify/plugin-nextjs`) podpira vse, kar ta aplikacija uporablja - App Router, Server Actions (vse "Dodaj"/"Uredi"/"Izbriši" akcije), in middleware (`src/middleware.ts`, preverjanje prijave v `/admin`). Koraki 1-2 (GitHub repozitorij, PostgreSQL baza) so IDENTIČNI razdelku 4 zgoraj - razlikuje se samo korak s samim hosting projektom:
 
-## 6. Za nadaljnji razvoj/predajo
+### Namesto Koraka 3 (Vercel) - Netlify projekt
+1. Ustvari brezplačen račun na [netlify.com](https://netlify.com), poveži GitHub.
+2. "Add new site" → "Import an existing project" → izberi repozitorij `narocanje-na-termin`.
+3. Netlify samodejno zazna Next.js in ponudi namestitev "Next.js Runtime" vtičnika - potrdi (privzeta, brez tega App Router/Server Actions ne bi delovali).
+4. Ker je Next.js projekt v podmapi `app/`, ne v korenu repozitorija, pod "Site settings → Build & deploy → Build settings" nastavi **Base directory** na `app` (isti pomen kot Vercelov "Root Directory"). Build command in Publish directory pusti privzeta (vtičnik ju nastavi sam).
+5. Pod "Environment variables" dodaj iste spremenljivke kot za Vercel (`DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, TRONxERP po potrebi).
+6. Klikni "Deploy site" - dobiš naslov oblike `nekaj-ime.netlify.app`.
+7. **Pred prvim obiskom aplikacije ročno izvedi `npx prisma migrate deploy`** proti isti produkcijski bazi (enako kot pri Vercelu) - Netlify tega ne naredi sam ob buildu.
+
+### Preveri delovanje
+Enako kot Korak 4 zgoraj (odpri naslov, prijava v `/admin`, testna rezervacija prek `/rezervacija`) - po prvem deployu posebej preveri, da neprijavljen obisk `/admin` pravilno preusmeri na `/prijava` (to teče kot Netlify Edge Function - preverjeno delovanje, a vredno enkratne potrditve po prvem deployu na tej konkretni platformi).
+
+### Če build javi napako o Prisma Client
+Redko, a če se zgodi ("`@prisma/client` did not initialize" ipd.), dodaj v `app/package.json` v `"scripts"` eksploziten `"postinstall": "prisma generate"` - to prisili generiranje ob vsakem `npm install`, ne glede na to, kako gostiteljev build proces obravnava Prisma-jeve lastne postinstall kljuke.
+
+Lastna domena (Korak 5 zgoraj) deluje enako - na Netlify projektu pod "Domain management" namesto Vercelovega "Domains".
+
+## 6. Če imate raje obstoječo Comtron infrastrukturo
+
+Če želite aplikacijo gostiti na že obstoječem strežniku (VPS, Docker ipd.) namesto na Vercelu/Netlifyju, mi povejte, kaj je na voljo (Linux/Windows strežnik, Docker, ali "gol" Node.js), pa pripravim natančnejša navodila zanj - splošno gledano aplikacija potrebuje: Node.js 18+, dostop do PostgreSQL baze, možnost nastavitve okoljskih spremenljivk in reverse proxy (nginx/Caddy) za HTTPS.
+
+## 7. Za nadaljnji razvoj/predajo
 
 Za splošno orientacijo po celotnem projektu (arhitektura, znane omejitve, poslovne odločitve) glej `PREDAJA-PROGRAMERJU.md` - ta dokument je bil pripravljen za morebitno predajo razvijalcu in ostaja veljaven tudi za gostovanje.
