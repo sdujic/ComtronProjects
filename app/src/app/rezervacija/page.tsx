@@ -176,11 +176,11 @@ export default function RezervacijaStran() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="mb-6 text-2xl font-bold">Rezervacija termina</h1>
 
-      <ol className="mb-8 flex gap-2 text-sm">
+      <ol className="mb-8 flex gap-1 text-[11px] sm:gap-2 sm:text-sm">
         {KORAKI.map((naziv, i) => (
           <li
             key={naziv}
-            className={`flex-1 rounded-md px-2 py-1 text-center ${
+            className={`flex-1 truncate rounded-md px-1 py-1.5 text-center sm:px-2 sm:py-1 ${
               i === korak ? "bg-primary-500 text-white" : i < korak ? "bg-primary-100 text-primary-600" : "bg-slate-100 text-slate-400"
             }`}
           >
@@ -252,7 +252,7 @@ export default function RezervacijaStran() {
                   <div className="font-medium">{s.naziv}</div>
                   {s.opis && <div className="text-sm text-slate-500">{s.opis}</div>}
                 </div>
-                <div className="text-right text-sm text-slate-600">
+                <div className="shrink-0 whitespace-nowrap text-right text-sm text-slate-600">
                   <div>{s.trajanjeMin} min</div>
                   <div className="font-medium">{s.cena.toFixed(2)} €</div>
                 </div>
