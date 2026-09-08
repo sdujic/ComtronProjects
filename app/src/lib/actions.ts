@@ -166,6 +166,9 @@ export async function ustvariStoritev(formData: FormData) {
     console.error("[TRONxERP] sinhronizacija storitve ni uspela", e);
   }
   revalidatePath("/admin/storitve");
+  revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
+  revalidatePath("/admin/koledar");
 }
 
 // Ne sinhronizira ponovno v TRONxERP (`saveArticle` se kliče samo ob
@@ -187,11 +190,17 @@ export async function posodobiStoritev(id: string, formData: FormData) {
     },
   });
   revalidatePath("/admin/storitve");
+  revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
+  revalidatePath("/admin/koledar");
 }
 
 export async function izbrisiStoritev(id: string) {
   await prisma.storitev.updateMany({ where: { id }, data: { aktivna: false } });
   revalidatePath("/admin/storitve");
+  revalidatePath("/admin/lokacije");
+  revalidatePath("/admin/zaposleni");
+  revalidatePath("/admin/koledar");
 }
 
 export async function ustvariZaposlenega(formData: FormData) {
