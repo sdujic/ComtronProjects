@@ -373,6 +373,10 @@
             <div class="ctitle">✓ Ta navodila so dosegljiva tudi iz aplikacije</div>
             Na dnu stranske navigacije v administraciji je povezava <b>»Navodila za uporabo«</b>, ki to isto stran odpre v novem zavihku — ni vam treba iskati te datoteke posebej.
           </div>
+          <div class="callout tip">
+            <div class="ctitle">✓ Hiter dostop do javne strani</div>
+            V glavi administracije (zgoraj desno, poleg imena poslovalnice) je gumb <b>»Stran za naročanje (stranke)«</b>, ki v novem zavihku odpre <span class="path">/rezervacija</span> - povezavo od tam preprosto kopirate in delite s strankami (npr. na spletni strani, Facebooku, v SMS-u).
+          </div>
           <figure class="shot">
             <img src="Navodila-slike/10-admin-prijava.png" alt="Prijava v administracijo">
             <figcaption>Prijavna stran.</figcaption>
@@ -532,17 +536,28 @@
           <p class="dek">Vsaka poslovalnica ima svoje nastavitve delovnega časa, koordinat za zemljevid in fizičnih delovnih mest.</p>
           <ol class="steps">
             <li><b>Koordinate</b> (zemljepisna širina/dolžina) določajo, kje se poslovalnica prikaže na zemljevidu pri izbiri poslovalnice na javnem obrazcu. Dobite jih z desnim klikom na lokacijo na Google Maps.</li>
-            <li><b>Delovna mesta</b> (npr. dvižne rampe pri avtoservisu, stoli pri frizerju) predstavljajo fizično omejitev, NEODVISNO od števila zaposlenih — eno mesto lahko streže samo en termin naenkrat.</li>
+            <li><b>Delovna mesta</b> (npr. dvižne rampe pri avtoservisu, stoli pri frizerju, čistilna mesta pri avtopralnici) predstavljajo fizično omejitev, NEODVISNO od števila zaposlenih — eno mesto lahko streže samo en termin naenkrat.</li>
             <li>Vsako delovno mesto ima svoj naziv (uredljiv) in svoj nabor storitev, ki jih zna izvesti — npr. ena rampa zna samo menjavo gum, druga zna menjavo gum IN redni servis.</li>
             <li>Če za lokacijo ni definirano NOBENO delovno mesto, zasedenost velja samo po zaposlenih (privzeto obnašanje) — delovna mesta so torej neobvezna nadgradnja, ne obveznost.</li>
           </ol>
           <div class="callout tip">
-            <div class="ctitle">✓ Primer</div>
+            <div class="ctitle">✓ Primer - lokacija z zaposlenimi IN delovnimi mesti</div>
             Avtoservis ima 2 rampi: »Rampa 1« zna samo menjavo gum, »Rampa 2« zna menjavo gum IN redni servis. Brez rezervacij sta tako na voljo 2 mesti za menjavo gum, a samo 1 za redni servis. Če stranka rezervira redni servis, ta storitev za to uro ni več na voljo nikomur drugemu (edina ustrezna rampa je zasedena), medtem ko menjava gum ostane dosegljiva na drugi rampi.
+          </div>
+          <h3 style="margin:22px 0 6px;font-size:16px">Lokacije BREZ lastnih zaposlenih (npr. avtopralnica)</h3>
+          <p>Nekatere poslovalnice ne dodeljujejo storitve poimenskemu osebju - stranka rezervira prosto »mesto«, ne osebe (tipičen primer: avtopralnica s čistilnimi mesti). Za take lokacije velja poseben način delovanja:</p>
+          <ol class="steps">
+            <li>Če za storitev na tej lokaciji NI dodanega nobenega zaposlenega, delovna mesta sama postanejo »sprožilec« razpoložljivosti - dovolj je, da je storitev dodana na vsaj eno delovno mesto te lokacije.</li>
+            <li>Za tak primer morate na lokaciji nastaviti tudi <b>»Rezervacije od-do«</b> (dvoklik na naziv/naslov lokacije za urejanje) - to je dnevno okno, znotraj katerega se ponujajo termini (npr. 08:00-18:00). Brez tega okna lokacija ne bo ponudila NOBENEGA termina, tudi če ima delovna mesta.</li>
+            <li>Število prostih terminov je enako številu prostih (nezasedenih) delovnih mest za to storitev - stranka pri rezervaciji ne izbira izvajalca, korak »Izvajalec« se v tem primeru samodejno preskoči.</li>
+          </ol>
+          <div class="callout warn">
+            <div class="ctitle">⚠ Če ima lokacija TUDI zaposlene</div>
+            »Rezervacije od-do« se upoštevajo SAMO, kadar za storitev na tej lokaciji ni dodanega niti enega zaposlenega. Če zaposleni obstajajo, a so v danem trenutku vsi zasedeni, se rezervacija zavrne, tudi če je delovno mesto prosto - lokacija z zaposlenimi vedno potrebuje dejansko prostega izvajalca (npr. avtoservis mora imeti mehanika, ne le prosto rampo).
           </div>
           <div class="callout tip">
             <div class="ctitle">✓ Urejanje z dvoklikom</div>
-            Dvoklik na naziv/naslov lokacije odpre urejanje osnovnih podatkov (naziv, naslov, delovni čas, država); dvoklik na posamezno delovno mesto odpre urejanje njegovega naziva in nabora storitev. Preklopna gumba »Sobota«/»Nedelja« in polje s koordinatami ostaneta vedno vidna, brez dvoklika.
+            Dvoklik na naziv/naslov lokacije odpre urejanje osnovnih podatkov (naziv, naslov, delovni čas, država, rezervacije od-do); dvoklik na posamezno delovno mesto odpre urejanje njegovega naziva in nabora storitev. Preklopna gumba »Sobota«/»Nedelja« in polje s koordinatami ostaneta vedno vidna, brez dvoklika.
           </div>
           <figure class="shot">
             <img src="Navodila-slike/21-admin-lokacije.png" alt="Lokacije">
