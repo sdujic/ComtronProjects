@@ -118,8 +118,12 @@ export async function posodobiNastavitveLokacije(id: string, formData: FormData)
   revalidatePath("/admin/lokacije");
 }
 
+// updateMany namesto update - če je zapis medtem že izbrisan/spremenjen na
+// drugem zavihku (npr. dva admina na isti strani), update z where:{id} vrže
+// napako "Record not found" (P2025), updateMany na 0 zadetkih samo tiho ne
+// naredi nič - brisanje naj bo idempotentno.
 export async function izbrisiLokacijo(id: string) {
-  await prisma.lokacija.update({ where: { id }, data: { aktivna: false } });
+  await prisma.lokacija.updateMany({ where: { id }, data: { aktivna: false } });
   revalidatePath("/admin/lokacije");
 }
 
@@ -186,7 +190,7 @@ export async function posodobiStoritev(id: string, formData: FormData) {
 }
 
 export async function izbrisiStoritev(id: string) {
-  await prisma.storitev.update({ where: { id }, data: { aktivna: false } });
+  await prisma.storitev.updateMany({ where: { id }, data: { aktivna: false } });
   revalidatePath("/admin/storitve");
 }
 
@@ -266,12 +270,12 @@ export async function ustvariUrnik(formData: FormData) {
 }
 
 export async function izbrisiUrnik(id: string) {
-  await prisma.urnik.delete({ where: { id } });
+  await prisma.urnik.deleteMany({ where: { id } });
   revalidatePath("/admin/urniki");
 }
 
 export async function izbrisiZaposlenega(id: string) {
-  await prisma.zaposleni.update({ where: { id }, data: { aktiven: false } });
+  await prisma.zaposleni.updateMany({ where: { id }, data: { aktiven: false } });
   revalidatePath("/admin/zaposleni");
 }
 
@@ -312,7 +316,7 @@ export async function posodobiDelovnoMesto(id: string, formData: FormData) {
 }
 
 export async function izbrisiDelovnoMesto(id: string) {
-  await prisma.delovnoMesto.update({ where: { id }, data: { aktivno: false } });
+  await prisma.delovnoMesto.updateMany({ where: { id }, data: { aktivno: false } });
   revalidatePath("/admin/lokacije");
 }
 

@@ -185,6 +185,9 @@ Popravljeno v `src/components/UrnikObrazec.tsx` (obrazec spremenjen v client kom
 - `ustvariUrnik` (actions.ts) isto pravilo preveri tudi na strežniku (vrže napako) - varovalka, če bi kdo obšel klientsko validacijo.
 - Obstoječi neveljaven zapis (Jože Novak, ponedeljek) ročno popravljen na 08:00-11:30 (delo do 12:00, 30-min zamik - konsistentno z ostalimi urniki v bazi).
 
+### Popravljen hrošč: brisanje že izbrisanega zapisa je vrglo napako namesto tihega no-opa
+Vse `izbrisi*` akcije (`izbrisiLokacijo`, `izbrisiStoritev`, `izbrisiZaposlenega`, `izbrisiDelovnoMesto`, `izbrisiUrnik`, `izbrisiAdminUporabnika`) so uporabljale `prisma.X.update()`/`.delete()` z golim `where: { id }` - če je zapis MEDTEM že izbrisan/ne obstaja več (npr. dva odprta zavihka, ali stran, ki še kaže star seznam pred osvežitvijo), Prisma vrže napako "Record to update/delete does not exist" (P2025), ki se je uporabniku pokazala kot nepričakovana napaka ob kliku "Izbriši" - najdeno, ko je bil testni zapis (glej spodaj) izbrisan iz ozadja, uporabnik pa je na svoji (še neosveženi) strani kliknil izbriši nanj. Popravljeno z `updateMany`/`deleteMany` namesto `update`/`delete` - na 0 ujemajočih vrsticah preprosto tiho ne naredi nič (`count: 0`), brez napake. Brisanje je s tem idempotentno - v redu je klikniti "Izbriši" tudi na zapis, ki je (iz katerega koli razloga) že izginil.
+
 ### Popravljen hrošč: termin brez izvajalca je bil neviden za preverjanje zasedenosti (dvostopenjski popravek)
 Ko je bil termin ustvarjen brez konkretnega `zaposleniId` (admin izbere "-- samodejno --", ali neposreden API klic brez izbire izvajalca), ga preverjanje zasedenosti ni zaznalo NIKOMUR, ker `pregledDneva` išče prekrivanje po `zaposleniId` posameznega izvajalca - termin brez njega ni bil primerjan z ničimer. Posledica: tak termin se je na javnem obrazcu spet prikazal kot prost.
 

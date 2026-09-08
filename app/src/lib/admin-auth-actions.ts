@@ -74,6 +74,6 @@ export async function ustvariAdminUporabnika(formData: FormData) {
 }
 
 export async function izbrisiAdminUporabnika(id: string) {
-  await prisma.adminUporabnik.delete({ where: { id } });
+  await prisma.adminUporabnik.deleteMany({ where: { id } });
   revalidatePath("/admin/nastavitve");
 }
