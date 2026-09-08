@@ -1,17 +1,16 @@
 // Prisma shema za rezervacijsko aplikacijo (BookingApp)
-// Razvojno okolje uporablja SQLite (provider "sqlite"), ker PostgreSQL
-// v tem Windows razvojnem okolju ni na voljo. Za produkcijo zamenjaj
-// provider v "postgresql" in DATABASE_URL v .env - shema je namenoma
-// napisana brez SQLite-specificnih trikov (enumi so String polja, da
-// prehod na Postgres ne zahteva sprememb modela).
+// Produkcija uporablja PostgreSQL (Supabase) - DATABASE_URL gre prek
+// connection poolerja (pgbouncer, transaction mode), DIRECT_URL (session
+// pooler, port 5432) pa uporabljajo samo migracije (`prisma migrate`).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Ena vrstica (singleton, id vedno "singleton") - globalne nastavitve
