@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { tronXerpAdapter } from "@/lib/tronxerp-adapter";
 import { najdiDejavnost } from "@/lib/dejavnosti";
 import { pridobiNastavitve } from "@/lib/nastavitve";
-import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto } from "@/lib/dostopnost";
+import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto, obstajaIzvajalecZaStoritev } from "@/lib/dostopnost";
 
 export async function posodobiNastavitve(formData: FormData) {
   const korakMinutTermina = Math.min(30, Math.max(1, Number(formData.get("korakMinutTermina")) || 5));
@@ -98,6 +98,8 @@ export async function posodobiOsnovnePodatkeLokacije(id: string, formData: FormD
       naslov: String(formData.get("naslov") || "") || null,
       delovniCas: String(formData.get("delovniCas") || "") || null,
       drzava: String(formData.get("drzava") || "SI"),
+      casRezervacijOd: String(formData.get("casRezervacijOd") || "") || null,
+      casRezervacijDo: String(formData.get("casRezervacijDo") || "") || null,
     },
   });
   revalidatePath("/admin/lokacije");
@@ -389,11 +391,13 @@ export async function ustvariTerminAdmin(formData: FormData) {
   // bil neviden za preverjanje zasedenosti - to je dopuščalo neomejeno
   // kopičenje prekrivajočih se rezervacij na isti termin, pravi hrošč,
   // najden v testiranju 2.9.2026).
+  const nimaIzvajalcev = !(await obstajaIzvajalecZaStoritev(storitevId, lokacijaId));
   const izbranZaposleniId = String(formData.get("zaposleniId") || "") || null;
   const zaposleniId =
-    izbranZaposleniId ?? (await najdiProstegaZaposlenega({ storitevId, lokacijaId, datumOd, datumDo }));
+    izbranZaposleniId ??
+    (nimaIzvajalcev ? null : await najdiProstegaZaposlenega({ storitevId, lokacijaId, datumOd, datumDo }));
 
-  if (!zaposleniId) {
+  if (!zaposleniId && !(nimaIzvajalcev && mestoRezultat.mestoId)) {
     throw new Error(
       "Za izbrano storitev/termin trenutno ni prostega izvajalca - izberite drug termin ali izvajalca."
     );

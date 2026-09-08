@@ -64,6 +64,13 @@ model Lokacija {
   // zemljevidu preprosto ne prikaže (ostane le v navadnem seznamu).
   lat         Float?
   lng         Float?
+  // Rezervacijsko okno za lokacije BREZ lastnih zaposlenih, ki delujejo
+  // izključno prek delovnih mest (npr. avtopralnica s "čistilnimi mesti",
+  // brez poimensko dodeljenega osebja) - glej dostopnost.ts,
+  // pregledDnevaPoMestih. Za lokacije z zaposlenimi ni potrebno (Urnik
+  // ureja razpoložljivost prek zaposlenih).
+  casRezervacijOd String?
+  casRezervacijDo String?
   aktivna     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

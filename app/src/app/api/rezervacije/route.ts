@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { POLJUBNA_STORITEV_SENTINEL, zagotoviPoljubnoStoritev } from "@/lib/poljubna-storitev";
-import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto } from "@/lib/dostopnost";
+import { najdiProstegaZaposlenega, najdiProstoDelovnoMesto, obstajaIzvajalecZaStoritev } from "@/lib/dostopnost";
 import { jeVeljavenEmail } from "@/lib/validacija";
 
 // Splošna (ne po-državna) preverba oblike sestavljene telefonske številke
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   // Hitrostna optimizacija (7.9.2026): te tri poizvedbe so med seboj
   // neodvisne (mesto rabi samo surov storitevId/lokacijaId, ne rezultat
   // storitve) - prej so tekle ena za drugo, zdaj vzporedno.
-  const [storitev, obstojecaStranka, mestoRezultat] = await Promise.all([
+  const [storitev, obstojecaStranka, mestoRezultat, nimaIzvajalcev] = await Promise.all([
     storitevId === POLJUBNA_STORITEV_SENTINEL
       ? zagotoviPoljubnoStoritev()
       : prisma.storitev.findUnique({ where: { id: storitevId } }),
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     // surov storitevId (lahko sentinel POLJUBNA), ne razrešen storitev.id -
     // isto kot pregledDneva.
     najdiProstoDelovnoMesto({ storitevId, lokacijaId, datumOd: new Date(datumOd), datumDo: new Date(datumDo) }),
+    obstajaIzvajalecZaStoritev(storitevId, lokacijaId).then((obstaja) => !obstaja),
   ]);
   if (!storitev) {
     return NextResponse.json({ napaka: "Storitev ne obstaja" }, { status: 404 });
@@ -72,8 +73,8 @@ export async function POST(req: Request) {
   // neomejeno kopičenje prekrivajočih se rezervacij, pravi hrošč najden
   // 2.9.2026).
   const koncniZaposleniId =
-    zaposleniId || (await najdiProstegaZaposlenega({ storitevId: storitev.id, lokacijaId, datumOd: new Date(datumOd), datumDo: new Date(datumDo) }));
-  if (!koncniZaposleniId) {
+    zaposleniId || (nimaIzvajalcev ? null : await najdiProstegaZaposlenega({ storitevId: storitev.id, lokacijaId, datumOd: new Date(datumOd), datumDo: new Date(datumDo) }));
+  if (!koncniZaposleniId && !(nimaIzvajalcev && mestoRezultat.mestoId)) {
     return NextResponse.json({ napaka: "Za izbran termin žal ni več prostega izvajalca" }, { status: 409 });
   }
 

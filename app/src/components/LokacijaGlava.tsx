@@ -11,6 +11,8 @@ type Lokacija = {
   drzava: string;
   odprtoSobota: boolean;
   odprtoNedelja: boolean;
+  casRezervacijOd: string | null;
+  casRezervacijDo: string | null;
 };
 
 export function LokacijaGlava({ lokacija }: { lokacija: Lokacija }) {
@@ -39,6 +41,13 @@ export function LokacijaGlava({ lokacija }: { lokacija: Lokacija }) {
             <option value="HR">Hrvaška</option>
           </select>
         </div>
+        <div>
+          <label className="label">Rezervacije od-do (samo za lokacije BREZ lastnih zaposlenih - glej Delovna mesta spodaj)</label>
+          <div className="flex gap-2">
+            <input type="time" name="casRezervacijOd" defaultValue={l.casRezervacijOd ?? ""} className="input" />
+            <input type="time" name="casRezervacijDo" defaultValue={l.casRezervacijDo ?? ""} className="input" />
+          </div>
+        </div>
         <div className="flex gap-3">
           <button type="submit" className="btn">
             Shrani
@@ -58,6 +67,9 @@ export function LokacijaGlava({ lokacija }: { lokacija: Lokacija }) {
         <div className="text-sm text-slate-500">{l.naslov}</div>
         <div className="text-sm text-slate-500">
           {l.delovniCas} · dela prosti dnevi: {l.drzava}
+          {l.casRezervacijOd && l.casRezervacijDo && (
+            <> · rezervacije {l.casRezervacijOd}-{l.casRezervacijDo} (brez zaposlenih)</>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3">

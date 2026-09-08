@@ -152,6 +152,21 @@ async function resiIzvajalceInTrajanje(storitevId: string, zaposleniId: string |
   return { trajanjeMin: storitev.trajanjeMin, izvajalci };
 }
 
+// Ali za to storitev/lokacijo obstaja SPLOH kak (aktiven) zaposleni - ne
+// glede na trenutno zasedenost. Uporabljeno pri ustvarjanju termina za
+// razlikovanje "ni zaposlenih, lokacija deluje prek delovnih mest" (glej
+// pregledDnevaPoMestih spodaj) od "zaposleni obstajajo, a so trenutno vsi
+// zasedeni" - slednje NE sme tiho preskociti na rezervacijo samo prek
+// delovnega mesta (npr. avtoservis MORA imeti dodeljenega mehanika).
+export async function obstajaIzvajalecZaStoritev(storitevId: string, lokacijaId: string): Promise<boolean> {
+  const pogoji =
+    storitevId === POLJUBNA_STORITEV_SENTINEL
+      ? { aktiven: true, lokacije: { some: { lokacijaId } } }
+      : { aktiven: true, storitve: { some: { storitevId } }, lokacije: { some: { lokacijaId } } };
+  const stevilo = await prisma.zaposleni.count({ where: pogoji });
+  return stevilo > 0;
+}
+
 // Za ročno ustvarjanje termina v adminu brez izbire izvajalca ("-- brez --")
 // - poišče prvega prostega upravičenega izvajalca, da termin dejansko
 // zasede njegov urnik (termin brez zaposleniId je sicer neviden za
@@ -303,6 +318,61 @@ export async function prostiIzvajalciZaTermin(params: {
     .map((z) => ({ id: z.id, ime: z.ime, priimek: z.priimek }));
 }
 
+// Dnevni pregled za lokacijo BREZ lastnih zaposlenih za to storitev -
+// prosti termini se generirajo neposredno iz rezervacijskega okna lokacije
+// (Lokacija.casRezervacijOd/Do) in kapacitete upravicenih delovnih mest, ne
+// iz zaposlenega urnika (ki tu ne obstaja). En termin = eno mesto, ne glede
+// na izvajalca (zaposleniId ostane prazen, glej Termin.zaposleniId).
+async function pregledDnevaPoMestih(params: {
+  datumStr: string;
+  datum: Date;
+  trajanjeMin: number;
+  mesta: { id: string }[];
+  casRezervacijOd: string;
+  casRezervacijDo: string;
+}): Promise<DnevniPregled> {
+  const { datumStr, datum, trajanjeMin, mesta, casRezervacijOd, casRezervacijDo } = params;
+  const zacetekDneva = new Date(datum);
+  zacetekDneva.setHours(0, 0, 0, 0);
+  const koncDneva = new Date(datum);
+  koncDneva.setHours(23, 59, 59, 999);
+
+  const odMin = casVMinute(casRezervacijOd);
+  const doMin = casVMinute(casRezervacijDo);
+  const mestaIds = mesta.map((m) => m.id);
+
+  const termini = await prisma.termin.findMany({
+    where: {
+      mestoId: { in: mestaIds },
+      status: { not: "ODPOVEDAN" },
+      datumOd: { lte: koncDneva },
+      datumDo: { gte: zacetekDneva },
+    },
+  });
+
+  const sloti: Slot[] = [];
+  for (let slotOd = odMin; slotOd + trajanjeMin <= doMin; slotOd += KORAK_MIN) {
+    const slotDo = slotOd + trajanjeMin;
+    const slotDatumOd = datumOb(datum, minuteVCas(slotOd));
+    const slotDatumDo = datumOb(datum, minuteVCas(slotDo));
+
+    const prostihMest = mesta.filter(
+      (m) => !termini.some((t) => t.mestoId === m.id && slotDatumOd < t.datumDo && slotDatumDo > t.datumOd)
+    ).length;
+
+    sloti.push({
+      ura: minuteVCas(slotOd),
+      datumOd: slotDatumOd,
+      datumDo: slotDatumDo,
+      prost: prostihMest > 0,
+      zaposleniId: undefined,
+      prostihMest,
+    });
+  }
+
+  return { datum: datumStr, zaprto: false, sloti };
+}
+
 export async function pregledDneva(params: {
   storitevId: string;
   zaposleniId?: string;
@@ -323,8 +393,22 @@ export async function pregledDneva(params: {
   if (dan0 === 6 && !lokacija.odprtoSobota) return { datum: datumStr, zaprto: true, razlogZaprtja: "Sobota", sloti: [] };
 
   const resitev = await resiIzvajalceInTrajanje(storitevId, zaposleniId, lokacijaId);
-  if (!resitev || resitev.izvajalci.length === 0) {
+  if (!resitev) {
     return { datum: datumStr, zaprto: true, razlogZaprtja: "Ni razpoložljivih izvajalcev", sloti: [] };
+  }
+  if (resitev.izvajalci.length === 0) {
+    const upravicenaMesta = await upravicenaDelovnaMesta(storitevId, lokacijaId);
+    if (upravicenaMesta.length === 0 || !lokacija.casRezervacijOd || !lokacija.casRezervacijDo) {
+      return { datum: datumStr, zaprto: true, razlogZaprtja: "Ni razpoložljivih izvajalcev", sloti: [] };
+    }
+    return pregledDnevaPoMestih({
+      datumStr,
+      datum,
+      trajanjeMin: resitev.trajanjeMin,
+      mesta: upravicenaMesta,
+      casRezervacijOd: lokacija.casRezervacijOd,
+      casRezervacijDo: lokacija.casRezervacijDo,
+    });
   }
   const { trajanjeMin, izvajalci } = resitev;
 
