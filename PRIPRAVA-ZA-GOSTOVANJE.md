@@ -9,6 +9,7 @@ Ta dokument pove, kaj je **že pripravljeno** za javno objavo aplikacije, kaj je
 - **Podatkovni model je pripravljen na PostgreSQL** brez sprememb kode - trenutno teče na SQLite (`prisma/schema.prisma`, `provider = "sqlite"`) samo zato, ker je bilo to najhitreje za razvoj na tem računalniku. Preklop je ena beseda (glej razdelek 3).
 - **Vse nastavitve okolja so dokumentirane** v `app/.env.example` in `app/README.md` (razdelek "Nastavitve / spremenljivke").
 - **Prijava v admin je zaščitena** (glej `app/README.md`, razdelek "Prijava v admin").
+- **Admin vmesnik je dosleden in robusten** - urejanje z dvoklikom (ne le dodaj/izbriši) je na voljo na vseh seznamih (zaposleni, storitve, lokacije, delovna mesta, urniki, stranke), brisanje je idempotentno (ne vrže napake, če je zapis medtem že izginil), urnik ima vgrajeno zaščito pred neveljavnim časom rezervacij.
 
 ## 2. Varnostni pregled - obvezno pred javno objavo končnim strankam
 
